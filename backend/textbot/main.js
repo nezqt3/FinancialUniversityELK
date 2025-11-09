@@ -1,4 +1,5 @@
-import { Bot } from "@maxhub/max-bot-api";
+const { Bot } = require("@maxhub/max-bot-api");
+require("dotenv").config();
 
 const bot = new Bot(process.env.BOT_TOKEN);
 
@@ -9,8 +10,8 @@ bot.api.setMyCommands([
   },
 ]);
 
-bot.command("start", (req) => {
-  return req.reply("Йоу");
+bot.command("start", (crx) => {
+  return crx.reply("Йоу");
 });
 
 bot.start();
