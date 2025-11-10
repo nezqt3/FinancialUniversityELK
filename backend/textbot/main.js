@@ -1,4 +1,4 @@
-const { Bot } = require("@maxhub/max-bot-api");
+const { Bot, Keyboard } = require("@maxhub/max-bot-api");
 require("dotenv").config();
 
 const bot = new Bot(process.env.BOT_TOKEN);
@@ -10,8 +10,18 @@ bot.api.setMyCommands([
   },
 ]);
 
-bot.command("start", (crx) => {
-  console.log(crx.location);
+console.log(Object.keys(Keyboard.button));
+
+const keyboard = Keyboard.inlineKeyboard([
+  [
+    Keyboard.button.link(
+      "🚀 Открыть мини-приложение",
+      "https://max.ru/t29_hakaton_bot?startapp"
+    ),
+  ],
+]);
+
+bot.command("start", (ctx) => {
   const text = `🎓 Привет! Я — MAX, ваш виртуальный помощник университета.
 
 Я помогу вам:
@@ -22,7 +32,8 @@ bot.command("start", (crx) => {
 ❓ и просто ответить на любые вопросы о студенческой жизни!
 
 Напишите, что вас интересует, — и я подскажу 😊`;
-  return crx.reply(text);
+
+  return ctx.reply(text, { attachments: [keyboard] });
 });
 
 bot.start();
