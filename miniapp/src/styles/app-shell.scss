@@ -1,27 +1,56 @@
+:root {
+  /* Подстрой по фактической высоте меню, если нужно */
+  --menu-height: 72px;
+  --screen-height: calc(100vh - env(safe-area-inset-bottom, 0) - var(--menu-height));
+}
+
 .app-shell {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #f6f8ff;
+  background: #ffffff;
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
 .app-shell__content {
   flex: 1;
-  padding: 2rem 1.5rem 5.5rem;
+  padding: 0; /* убираем внешние зазоры вокруг .screen */
+  position: relative;
+  overflow: hidden;
+}
+
+.screen-stack {
+  position: relative;
+  width: 100%;
+  height: var(--screen-height);
+  min-height: var(--screen-height);
+  overflow: hidden;
+}
+
+.screen-stack__item {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
 .screen {
   width: 100%;
-  min-height: 60vh;
+  height: var(--screen-height);
   background: #ffffff;
-  border-radius: 32px;
-  padding: 2rem;
-  box-shadow: 0 25px 70px rgba(15, 23, 42, 0.08);
+  border-radius: 32px 32px 0 0; /* скругления только сверху */
+  padding: 2rem; /* внутренние отступы экрана остаются */
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 0.75rem;
+}
+
+/* Более корректная высота на мобильных браузерах с динамической адресной строкой */
+@supports (height: 100dvh) {
+  :root {
+    --screen-height: calc(100dvh - env(safe-area-inset-bottom, 0) - var(--menu-height));
+  }
 }
 
 .screen__title {
@@ -49,6 +78,18 @@
   box-shadow: 0 -10px 35px rgba(15, 23, 42, 0.08);
 }
 
+/* Фиксируем расчетную высоту меню под переменную, чтобы calc() сходился */
+.menu-bar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+/* Подсказываем браузеру минимальную высоту меню (паддинги + кнопки) */
+.menu-bar {
+  min-height: var(--menu-height);
+}
+
 .menu-bar__button {
   flex: 1;
   border: none;
@@ -66,9 +107,23 @@
   transition: color 0.2s ease, transform 0.2s ease, background 0.2s ease;
 }
 
+.menu-bar__icon-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.menu-bar__indicator {
+  width: 20px;
+  height: 3px;
+  border-radius: 999px;
+  display: block;
+}
+
 .menu-bar__button--active {
   color: #004cff;
-  background: #eef3ff;
+  background: #ffffff;
   transform: translateY(-6px);
 }
 

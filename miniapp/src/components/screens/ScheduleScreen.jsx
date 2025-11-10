@@ -1,5 +1,3 @@
-
-
 const ScheduleScreen = () => (
   <section className="screen">
     <h2 className="screen__title">Schedule</h2>
