@@ -8,7 +8,7 @@ export const screenFade = {
 export const logoRotation = {
   initial: { rotate: -50 },
   animate: { rotate: 0 },
-  transition: { duration: 0.6, delay: 1.1, ease: [0, 0.3, 0.2, 1.01] },
+  transition: { duration: 1, delay: 1.1, ease: [0, 0.3, 0.2, 1.01] },
 };
 
 export const buttonAnim = {

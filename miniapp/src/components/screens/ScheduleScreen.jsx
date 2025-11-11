@@ -6,7 +6,6 @@ import {
 } from "../../methods/parse/parseSchedule";
 
 const STORAGE_KEY = "max-miniapp:schedule-profile";
-const DEFAULT_QUERY = "ТРПО25-2";
 const MONTHS_GENITIVE = [
   "января",
   "февраля",
@@ -33,7 +32,14 @@ const WEEKDAY_FULL_FORMAT = new Intl.DateTimeFormat("ru-RU", {
   day: "numeric",
   month: "long",
 });
-const toISODate = (date) => date.toISOString().split("T")[0];
+const toISODate = (date) => {
+  if (!(date instanceof Date)) {
+    return "";
+  }
+  const tzOffsetMs = date.getTimezoneOffset() * 60000;
+  const localTime = date.getTime() - tzOffsetMs;
+  return new Date(localTime).toISOString().split("T")[0];
+};
 
 const buildWeekDays = (offset = 0) => {
   const base = new Date();
@@ -80,6 +86,81 @@ const formatWeekRange = (days) => {
   return `${firstDay} ${firstMonth} — ${lastDay} ${lastMonth}`;
 };
 
+const formatKindLabel = (kind) => {
+  const normalized = (kind ?? "").trim();
+  if (!normalized) {
+    return "";
+  }
+  if (/лекц/i.test(normalized)) {
+    return "Лекция";
+  }
+  if (/(практ|семинар)/i.test(normalized)) {
+    return "Семинар";
+  }
+  return normalized;
+};
+
+const getCommonStreamLabel = (labels = []) => {
+  const clean = labels
+    .map((label) => (label ?? "").trim())
+    .filter(Boolean);
+  if (clean.length < 2) {
+    return null;
+  }
+  const sorted = [...clean].sort((a, b) => a.localeCompare(b, "ru"));
+  const first = sorted[0];
+  const last = sorted[sorted.length - 1];
+  let index = 0;
+  while (index < first.length && first[index] === last[index]) {
+    index += 1;
+  }
+  const prefix = first.slice(0, index).trim().replace(/[-_.:/\\]+$/, "");
+  if (prefix.length < 3) {
+    return null;
+  }
+  return prefix;
+};
+
+const splitLabels = (labels = []) =>
+  labels
+    .flatMap((label) =>
+      (label ?? "")
+        .split(/[,;•]/)
+        .map((part) => part.trim())
+        .filter(Boolean),
+    )
+    .filter(Boolean);
+
+const buildStreamDisplay = (streamLabels = [], groupLabels = []) => {
+  const expandedStreams = splitLabels(streamLabels);
+  const expandedGroups = splitLabels(groupLabels);
+  const primary = expandedStreams.length > 0 ? expandedStreams : expandedGroups;
+  if (primary.length <= 1) {
+    return [];
+  }
+  const common = getCommonStreamLabel(primary);
+  if (common) {
+    return [common];
+  }
+  return primary;
+};
+
+const formatCountdownLabel = (msDiff) => {
+  if (!Number.isFinite(msDiff) || msDiff <= 0) {
+    return "";
+  }
+  const totalMinutes = Math.max(Math.round(msDiff / 60000), 1);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours && minutes) {
+    return `Через ${hours}ч ${minutes}м`;
+  }
+  if (hours) {
+    return `Через ${hours}ч`;
+  }
+  return `Через ${minutes}м`;
+};
+
 const uniqueValues = (values = []) => {
   const seen = new Set();
   return values
@@ -107,22 +188,6 @@ const parseLessonDate = (iso, time) => {
   return date;
 };
 
-const formatDuration = (minutes) => {
-  if (!Number.isFinite(minutes) || minutes <= 0) {
-    return "";
-  }
-
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  if (hours && mins) {
-    return `${hours}ч ${mins}м`;
-  }
-  if (hours) {
-    return `${hours}ч`;
-  }
-  return `${mins}м`;
-};
-
 const normalizeLesson = (lesson, iso, index) => {
   const uniqueDisciplines = uniqueValues(lesson.disciplines);
   const uniqueKinds = uniqueValues(lesson.kindOfWorks);
@@ -141,18 +206,7 @@ const normalizeLesson = (lesson, iso, index) => {
   const isCurrent =
     startDate && endDate && now >= startDate && now <= endDate ? true : false;
   const isPast = endDate ? now > endDate : false;
-  const durationMinutes =
-    startDate && endDate ? (endDate - startDate) / 60000 : 0;
-
-  let badge = null;
-  let badgeText = "";
-  if (isCurrent) {
-    badge = "now";
-    badgeText = "Идёт сейчас";
-  } else if (!isPast) {
-    badge = "soon";
-    badgeText = "Скоро";
-  }
+  const startTimestamp = startDate?.getTime() ?? null;
 
   return {
     id: `${iso}-${lesson.beginLesson}-${lesson.endLesson}-${index}`,
@@ -160,18 +214,17 @@ const normalizeLesson = (lesson, iso, index) => {
     endLesson: lesson.endLesson,
     title: uniqueDisciplines[0] || "Неизвестный предмет",
     extraDisciplines: uniqueDisciplines.slice(1),
-    kindOfWork: uniqueKinds[0] || "",
+    kindOfWork: formatKindLabel(uniqueKinds[0]),
     lecturers,
     lecturerTitles,
     rooms,
     groups: groupLabels,
-    streams: streamLabels,
+    streams: buildStreamDisplay(streamLabels, groupLabels),
     urls,
     isCurrent,
     isPast,
-    badge,
-    badgeText,
-    durationLabel: formatDuration(durationMinutes),
+    countdownLabel: "",
+    startTimestamp,
     iso,
   };
 };
@@ -195,28 +248,35 @@ const LessonCard = ({ lesson, index }) => (
       .filter(Boolean)
       .join(" ")}
   >
-    <div className="schedule-lesson-card__time">
-      <span>{lesson.beginLesson}</span>
-      <span>{lesson.endLesson}</span>
+    <div className="schedule-lesson-card__header">
+      <div className="schedule-lesson-card__time">
+        <span>{lesson.beginLesson}</span>
+        <span>—</span>
+        <span>{lesson.endLesson}</span>
+      </div>
+      <div className="schedule-lesson-card__tags">
+        <div className="schedule-lesson-card__tag-row">
+          {lesson.kindOfWork && (
+            <span className="schedule-chip schedule-chip--kind">
+              {lesson.kindOfWork}
+            </span>
+          )}
+        </div>
+        <div className="schedule-lesson-card__tag-row">
+          {lesson.isCurrent && (
+            <span className="schedule-chip schedule-chip--now">
+              Идёт сейчас
+            </span>
+          )}
+          {!lesson.isCurrent && lesson.countdownLabel && (
+            <span className="schedule-chip schedule-chip--countdown">
+              {lesson.countdownLabel}
+            </span>
+          )}
+        </div>
+      </div>
     </div>
     <div className="schedule-lesson-card__body">
-      <div className="schedule-lesson-card__meta">
-        {lesson.kindOfWork && (
-          <span className="schedule-chip schedule-chip--kind">
-            {lesson.kindOfWork}
-          </span>
-        )}
-        {lesson.durationLabel && (
-          <span className="schedule-chip schedule-chip--ghost">
-            {lesson.durationLabel}
-          </span>
-        )}
-        {lesson.badge && (
-          <span className={`schedule-chip schedule-chip--${lesson.badge}`}>
-            {lesson.badgeText}
-          </span>
-        )}
-      </div>
       <h3 className="schedule-lesson-card__title">{lesson.title}</h3>
       {lesson.extraDisciplines.length > 0 && (
         <p className="schedule-lesson-card__subtitle">
@@ -315,8 +375,18 @@ const ScheduleScreen = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [searchError, setSearchError] = useState("");
-  const [searching, setSearching] = useState(false);
+  const [isSuggesting, setIsSuggesting] = useState(false);
+  const [isSubmittingSearch, setIsSubmittingSearch] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [lessonsCache, setLessonsCache] = useState({});
+  const searchInputRef = useRef(null);
+  const isSearchBusy = isSuggesting || isSubmittingSearch;
+  const shouldExpandSearch =
+    isEditingProfile ||
+    isSearchFocused ||
+    Boolean(searchQuery.trim()) ||
+    searchResults.length > 0;
 
   const [selectedProfile, setSelectedProfile] = useState(() => {
     if (typeof window === "undefined") {
@@ -341,40 +411,58 @@ const ScheduleScreen = () => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(selectedProfile));
   }, [selectedProfile]);
 
-  const bootstrapRef = useRef(false);
   useEffect(() => {
-    if (selectedProfile || bootstrapRef.current) {
+    if (isEditingProfile && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [isEditingProfile]);
+
+  useEffect(() => {
+    if (!selectedProfile) {
+      setIsEditingProfile(false);
+    }
+  }, [selectedProfile]);
+
+  useEffect(() => {
+    const query = searchQuery.trim();
+    setSearchError("");
+    if (query.length < 3) {
+      setSearchResults([]);
+      setIsSuggesting(false);
       return;
     }
-    bootstrapRef.current = true;
+    if (selectedProfile && !isEditingProfile) {
+      setSearchResults([]);
+      setIsSuggesting(false);
+      return;
+    }
 
     let aborted = false;
-    const bootstrap = async () => {
+    const debounceId = setTimeout(async () => {
       try {
-        setSearchQuery(DEFAULT_QUERY);
-        setSearching(true);
-        const results = await parseIdSchedule(DEFAULT_QUERY);
-        if (!aborted && Array.isArray(results) && results.length > 0) {
-          setSelectedProfile(results[0]);
-          setSearchResults([]);
+        setIsSuggesting(true);
+        const results = await parseIdSchedule(query);
+        if (aborted) {
+          return;
         }
+        setSearchResults(results.slice(0, 6));
       } catch (error) {
-        console.error("Bootstrap schedule search failed", error);
         if (!aborted) {
-          setSearchError("Не удалось найти расписание по умолчанию");
+          console.error("Schedule suggestion search failed", error);
+          setSearchError("Ошибка при поиске расписания");
         }
       } finally {
         if (!aborted) {
-          setSearching(false);
+          setIsSuggesting(false);
         }
       }
-    };
+    }, 250);
 
-    bootstrap();
     return () => {
       aborted = true;
+      clearTimeout(debounceId);
     };
-  }, [selectedProfile]);
+  }, [isEditingProfile, searchQuery, selectedProfile]);
 
   const cacheKey =
     selectedProfile && activeIso
@@ -416,17 +504,38 @@ const ScheduleScreen = () => {
 
         const normalized = lessonsData
           .map((lesson, index) => normalizeLesson(lesson, activeIso, index))
-          .sort((a, b) => {
-            const aStart =
-              parseLessonDate(a.iso, a.beginLesson)?.getTime() ?? 0;
-            const bStart =
-              parseLessonDate(b.iso, b.beginLesson)?.getTime() ?? 0;
-            return aStart - bStart;
-          });
+          .sort(
+            (a, b) =>
+              (a.startTimestamp ?? 0) - (b.startTimestamp ?? 0),
+          );
+
+        const nowTs = Date.now();
+        const upcomingIndex = normalized.findIndex(
+          (lesson) =>
+            !lesson.isCurrent &&
+            Number.isFinite(lesson.startTimestamp) &&
+            lesson.startTimestamp > nowTs,
+        );
+
+        const enhanced =
+          upcomingIndex === -1
+            ? normalized
+            : normalized.map((lesson, index) =>
+                index === upcomingIndex
+                  ? {
+                      ...lesson,
+                      countdownLabel: formatCountdownLabel(
+                        lesson.startTimestamp - nowTs,
+                      ),
+                    }
+                  : lesson,
+              );
+
+        const sanitized = enhanced.map(({ startTimestamp, ...rest }) => rest);
 
         setLessonsCache((prev) => ({
           ...prev,
-          [cacheKey]: { status: "ready", data: normalized },
+          [cacheKey]: { status: "ready", data: sanitized },
         }));
       } catch (error) {
         console.error("Schedule request failed", error);
@@ -444,51 +553,63 @@ const ScheduleScreen = () => {
     return () => {
       aborted = true;
     };
-  }, [
-    selectedProfile,
-    selectedProfile?.id,
-    selectedProfile?.type,
-    activeIso,
-    cacheKey,
-    cacheEntry?.status,
-  ]);
+  }, [cacheKey, selectedProfile?.id, selectedProfile?.type, activeIso]);
+
+  const handleSelectProfile = useCallback((profile) => {
+    setSelectedProfile(profile);
+    setSearchQuery("");
+    setSearchResults([]);
+    setSearchError("");
+    setIsSearchFocused(false);
+    setIsSuggesting(false);
+    setIsSubmittingSearch(false);
+    setIsEditingProfile(false);
+    setLessonsCache({});
+  }, []);
 
   const handleSearch = useCallback(
     async (event) => {
       event.preventDefault();
-      setSearchError("");
-      if (!searchQuery.trim()) {
-        setSearchResults([]);
+      const query = searchQuery.trim();
+      if (selectedProfile && !isEditingProfile) {
+        return;
+      }
+      if (query.length < 3) {
+        setSearchError("Введите минимум 3 символа");
         return;
       }
 
       try {
-        setSearching(true);
-        const results = await parseIdSchedule(searchQuery.trim());
+        setIsSubmittingSearch(true);
+        setSearchError("");
+        const results = await parseIdSchedule(query);
         setSearchResults(results.slice(0, 6));
         if (!results.length) {
           setSearchError("Ничего не найдено");
+          return;
         }
+
+        const exactMatch =
+          results.find(
+            (result) => result.label.toLowerCase() === query.toLowerCase(),
+          ) || results[0];
+
+        handleSelectProfile(exactMatch);
       } catch (error) {
         console.error("Schedule search failed", error);
         setSearchError("Ошибка при поиске расписания");
       } finally {
-        setSearching(false);
+        setIsSubmittingSearch(false);
       }
     },
-    [searchQuery],
+    [handleSelectProfile, isEditingProfile, searchQuery, selectedProfile],
   );
-
-  const handleSelectProfile = useCallback((profile) => {
-    setSelectedProfile(profile);
-    setSearchQuery(profile.label);
+  const handleEnterEditMode = useCallback(() => {
+    setIsEditingProfile(true);
+    setSearchQuery("");
     setSearchResults([]);
-    setLessonsCache({});
-  }, []);
-
-  const handleResetProfile = useCallback(() => {
-    setSelectedProfile(null);
-    setLessonsCache({});
+    setSearchError("");
+    setIsSearchFocused(false);
   }, []);
 
   const handleWeekChange = useCallback((step) => {
@@ -501,75 +622,128 @@ const ScheduleScreen = () => {
 
   return (
     <section className="screen schedule-screen">
+      <div className="schedule-screen__search-block">
+        <AnimatePresence mode="wait">
+          {selectedProfile && !isEditingProfile ? (
+            <motion.button
+              key="schedule-search-pill"
+              type="button"
+              className="schedule-search-pill"
+              onClick={handleEnterEditMode}
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.2 }}
+              whileTap={{ scale: 0.96 }}
+            >
+              <span>{selectedProfile.label}</span>
+              <small>{selectedProfile.type}</small>
+            </motion.button>
+          ) : (
+            <motion.div
+              key="schedule-search-form"
+              className={[
+                "schedule-search__wrapper",
+                shouldExpandSearch ? "schedule-search__wrapper--expanded" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.2 }}
+            >
+              <form className="schedule-search" onSubmit={handleSearch}>
+                <div className="schedule-search__field">
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder="Поиск расписания"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    onFocus={() => setIsSearchFocused(true)}
+                    onBlur={() => setIsSearchFocused(false)}
+                  />
+                  {isSearchBusy && (
+                    <span className="schedule-search__spinner" />
+                  )}
+                </div>
+                <motion.button
+                  type="submit"
+                  className="schedule-search__submit"
+                  whileTap={{ scale: 0.9 }}
+                  disabled={isSearchBusy}
+                  aria-label="Найти расписание"
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <circle
+                      cx="11"
+                      cy="11"
+                      r="6"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    />
+                    <line
+                      x1="15.5"
+                      y1="15.5"
+                      x2="21"
+                      y2="21"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </motion.button>
+              </form>
+
+              {searchError && (
+                <p className="schedule-search__error">{searchError}</p>
+              )}
+
+              <AnimatePresence>
+                {searchResults.length > 0 && (
+                  <motion.ul
+                    className="schedule-search__results"
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.25 }}
+                  >
+                    {searchResults.map((result) => (
+                      <li key={`${result.type}-${result.id}`}>
+                        <button
+                          type="button"
+                          onClick={() => handleSelectProfile(result)}
+                        >
+                          <span>{result.label}</span>
+                          <small>{result.type}</small>
+                        </button>
+                      </li>
+                    ))}
+                  </motion.ul>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
       <div className="schedule-screen__heading">
         <div>
           <h2 className="screen__title">Расписание</h2>
-          {selectedProfile ? (
-            <p className="schedule-screen__profile">
-              {selectedProfile.label} · {selectedProfile.type}
-            </p>
-          ) : (
+          {!selectedProfile && (
             <p className="screen__subtitle">
               Найдите свою группу или преподавателя, чтобы увидеть расписание.
             </p>
           )}
         </div>
-        {selectedProfile && (
-          <motion.button
-            type="button"
-            className="schedule-screen__reset"
-            onClick={handleResetProfile}
-            whileTap={{ scale: 0.94 }}
-          >
-            Сменить
-          </motion.button>
-        )}
       </div>
-
-      <form className="schedule-search" onSubmit={handleSearch}>
-        <div className="schedule-search__field">
-          <input
-            type="text"
-            placeholder="Например, ТРПО25-2"
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
-          />
-          {searching && <span className="schedule-search__spinner" />}
-        </div>
-        <motion.button
-          type="submit"
-          className="schedule-search__submit"
-          whileTap={{ scale: 0.95 }}
-          disabled={searching}
-        >
-          Найти
-        </motion.button>
-      </form>
-      {searchError && <p className="schedule-search__error">{searchError}</p>}
-
-      <AnimatePresence>
-        {searchResults.length > 0 && (
-          <motion.ul
-            className="schedule-search__results"
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.25 }}
-          >
-            {searchResults.map((result) => (
-              <li key={`${result.type}-${result.id}`}>
-                <button
-                  type="button"
-                  onClick={() => handleSelectProfile(result)}
-                >
-                  <span>{result.label}</span>
-                  <small>{result.type}</small>
-                </button>
-              </li>
-            ))}
-          </motion.ul>
-        )}
-      </AnimatePresence>
 
       <motion.div
         className="schedule-week"
@@ -615,14 +789,6 @@ const ScheduleScreen = () => {
             </motion.button>
           );
         })}
-      </div>
-
-      <div className="schedule-day-info">
-        <div>
-          <p className="schedule-day-info__label">{activeDay?.labelLong}</p>
-          <h3 className="schedule-day-info__title">{activeDay?.fullLabel}</h3>
-        </div>
-        <p className="schedule-day-info__iso">{activeIso}</p>
       </div>
 
       <div className="schedule-lessons">

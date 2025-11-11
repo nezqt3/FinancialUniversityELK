@@ -61,12 +61,14 @@ const parseIdSchedule = async (string) => {
     const response = await fetch(`https://ruz.fa.ru/api/search?term=${string}`);
     const data = await response.json();
     return data
-      .filter((elem) => !elem.label.includes(";"))
       .filter((elem) => elem.type !== "lecturer")
       .map((item) => ({
         id: item.id,
         label: item.label,
         type: item.type,
+        description: item.description || "",
+        guid: item.guid,
+        isCombined: item.label.includes(";"),
       }));
   } catch (e) {
     throw e;
@@ -105,29 +107,87 @@ const parseSchedule = async (id, type, startTime, endTime) => {
   }
 };
 
-// Новый endpoint для API
-app.get("/api/schedule", async (req, res) => {
-  const { term, start, end } = req.query;
+// Proxy endpoint for search to avoid CORS issues on the client
+app.get("/api/schedule/search", async (req, res) => {
+  const { term } = req.query;
 
-  if (!term || !start || !end) {
-    return res
-      .status(400)
-      .send({ error: "Параметры term, start и end обязательны" });
+  if (!term) {
+    return res.status(400).send({ error: "Параметр term обязателен" });
   }
 
   try {
     const searchResponse = await parseIdSchedule(term);
-    if (!searchResponse.length) {
-      return res.status(404).send({ error: "Расписание не найдено" });
+    res.json(searchResponse);
+  } catch (e) {
+    res.status(500).send({ error: e.message });
+  }
+});
+
+// Alias endpoint compatible with RUZ: /api/search?term=...&type=...
+app.get("/api/search", async (req, res) => {
+  const { term, type } = req.query;
+
+  if (!term) {
+    return res.status(400).send({ error: "Параметр term обязателен" });
+  }
+
+  try {
+    let results = await parseIdSchedule(term);
+
+    if (type) {
+      const requestedTypes = type
+        .split(",")
+        .map((value) => value.trim().toLowerCase())
+        .filter(Boolean);
+      if (requestedTypes.length > 0) {
+        results = results.filter((item) =>
+          requestedTypes.includes((item.type || "").toLowerCase())
+        );
+      }
     }
 
-    const schedule = await parseSchedule(
-      searchResponse[0].id,
-      searchResponse[0].type,
-      start,
-      end
-    );
+    res.json(results);
+  } catch (e) {
+    res.status(500).send({ error: e.message });
+  }
+});
 
+// Endpoint to fetch schedule by a specific profile ID/type (query params)
+app.get("/api/schedule", async (req, res) => {
+  const { profileId, profileType } = req.query;
+  const start = req.query.start || req.query.startTime;
+  const end = req.query.end || req.query.finish || req.query.endTime;
+
+  if (!profileId || !profileType || !start || !end) {
+    return res.status(400).send({
+      error:
+        "Параметры profileId, profileType и даты (start/end или startTime/endTime или start/finish) обязательны",
+    });
+  }
+
+  try {
+    const schedule = await parseSchedule(profileId, profileType, start, end);
+    res.json(schedule);
+  } catch (e) {
+    res.status(500).send({ error: e.message });
+  }
+});
+
+// Endpoint compatible with original RUZ path style: /api/schedule/group/:id?start&finish
+app.get("/api/schedule/:profileType/:profileId", async (req, res) => {
+  const { profileId, profileType } = req.params;
+  const start = req.query.start || req.query.startTime;
+  const end = req.query.finish || req.query.end || req.query.endTime;
+
+  if (!profileId || !profileType || !start || !end) {
+    return res.status(400).send({
+      error:
+        "Параметры profileId, profileType и даты (start & finish) обязательны",
+    });
+  }
+
+  try {
+    const schedule = await parseSchedule(profileId, profileType, start, end);
     res.json(schedule);
   } catch (e) {
     res.status(500).send({ error: e.message });

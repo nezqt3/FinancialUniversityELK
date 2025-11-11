@@ -8,28 +8,16 @@ const useSwipeNavigation = ({ enabled = false, threshold = 60, onSwipe = () => {
     pointerId: null,
     startX: 0,
     startY: 0,
-    target: null,
   });
 
   const clearSwipeSession = useCallback(() => {
-    const { pointerId, target } = swipeSessionRef.current;
-
-    if (pointerId !== null && target?.releasePointerCapture) {
-      try {
-        target.releasePointerCapture(pointerId);
-      } catch {
-        /* noop */
-      }
-    }
-
     swipeSessionRef.current.pointerId = null;
     swipeSessionRef.current.startX = 0;
     swipeSessionRef.current.startY = 0;
-    swipeSessionRef.current.target = null;
   }, []);
 
   const startSwipe = useCallback(
-    (x, y, pointerId, target) => {
+    (x, y, pointerId) => {
       if (!enabled || swipeSessionRef.current.pointerId !== null) {
         return;
       }
@@ -37,7 +25,6 @@ const useSwipeNavigation = ({ enabled = false, threshold = 60, onSwipe = () => {
       swipeSessionRef.current.pointerId = pointerId;
       swipeSessionRef.current.startX = x;
       swipeSessionRef.current.startY = y;
-      swipeSessionRef.current.target = target ?? null;
     },
     [enabled],
   );
@@ -81,8 +68,7 @@ const useSwipeNavigation = ({ enabled = false, threshold = 60, onSwipe = () => {
         return;
       }
 
-      startSwipe(event.clientX, event.clientY, event.pointerId, event.currentTarget);
-      event.currentTarget.setPointerCapture?.(event.pointerId);
+      startSwipe(event.clientX, event.clientY, event.pointerId);
     },
     [enabled, startSwipe],
   );
@@ -113,7 +99,7 @@ const useSwipeNavigation = ({ enabled = false, threshold = 60, onSwipe = () => {
         return;
       }
 
-      startSwipe(touch.clientX, touch.clientY, touch.identifier, event.currentTarget);
+      startSwipe(touch.clientX, touch.clientY, touch.identifier);
     },
     [enabled, startSwipe],
   );
