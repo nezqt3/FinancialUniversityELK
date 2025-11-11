@@ -134,11 +134,15 @@ app.get("/api/schedule", async (req, res) => {
   }
 });
 
-app.listen(4000, () => console.log("Server running on port 4000"));
-
 app.get("/api/news", async (req, res) => {
+  const { url } = req.query;
+
+  if (!url) {
+    return res.status(400).send({ error: "Параметр url обязателен" });
+  }
+
   try {
-    const response = await fetch("https://www.fa.ru/university/press-center/");
+    const response = await fetch(url);
     const html = await response.text();
     res.send({ html });
   } catch (e) {

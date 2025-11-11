@@ -141,7 +141,8 @@ const normalizeLesson = (lesson, iso, index) => {
   const isCurrent =
     startDate && endDate && now >= startDate && now <= endDate ? true : false;
   const isPast = endDate ? now > endDate : false;
-  const durationMinutes = startDate && endDate ? (endDate - startDate) / 60000 : 0;
+  const durationMinutes =
+    startDate && endDate ? (endDate - startDate) / 60000 : 0;
 
   let badge = null;
   let badgeText = "";
@@ -181,7 +182,11 @@ const LessonCard = ({ lesson, index }) => (
     initial={{ opacity: 0, y: 18 }}
     animate={{ opacity: 1, y: 0 }}
     exit={{ opacity: 0, y: -18 }}
-    transition={{ duration: 0.35, delay: index * 0.05, ease: [0.16, 1, 0.3, 1] }}
+    transition={{
+      duration: 0.35,
+      delay: index * 0.05,
+      ease: [0.16, 1, 0.3, 1],
+    }}
     className={[
       "schedule-lesson-card",
       lesson.isCurrent ? "schedule-lesson-card--current" : "",
@@ -197,7 +202,9 @@ const LessonCard = ({ lesson, index }) => (
     <div className="schedule-lesson-card__body">
       <div className="schedule-lesson-card__meta">
         {lesson.kindOfWork && (
-          <span className="schedule-chip schedule-chip--kind">{lesson.kindOfWork}</span>
+          <span className="schedule-chip schedule-chip--kind">
+            {lesson.kindOfWork}
+          </span>
         )}
         {lesson.durationLabel && (
           <span className="schedule-chip schedule-chip--ghost">
@@ -229,19 +236,25 @@ const LessonCard = ({ lesson, index }) => (
       {lesson.rooms.length > 0 && (
         <div className="schedule-lesson-card__row">
           <p className="schedule-lesson-card__label">Аудитория</p>
-          <p className="schedule-lesson-card__value">{lesson.rooms.join(", ")}</p>
+          <p className="schedule-lesson-card__value">
+            {lesson.rooms.join(", ")}
+          </p>
         </div>
       )}
       {lesson.groups.length > 0 && (
         <div className="schedule-lesson-card__row">
           <p className="schedule-lesson-card__label">Группы</p>
-          <p className="schedule-lesson-card__value">{lesson.groups.join(", ")}</p>
+          <p className="schedule-lesson-card__value">
+            {lesson.groups.join(", ")}
+          </p>
         </div>
       )}
       {lesson.streams.length > 0 && (
         <div className="schedule-lesson-card__row">
           <p className="schedule-lesson-card__label">Поток</p>
-          <p className="schedule-lesson-card__value">{lesson.streams.join(", ")}</p>
+          <p className="schedule-lesson-card__value">
+            {lesson.streams.join(", ")}
+          </p>
         </div>
       )}
       {lesson.urls.length > 0 && (
@@ -288,10 +301,7 @@ const ScheduleScreen = () => {
 
   const [weekOffset, setWeekOffset] = useState(0);
   const [selectedDayIndex, setSelectedDayIndex] = useState(initialIndex);
-  const weekDays = useMemo(
-    () => buildWeekDays(weekOffset),
-    [weekOffset],
-  );
+  const weekDays = useMemo(() => buildWeekDays(weekOffset), [weekOffset]);
 
   useEffect(() => {
     setSelectedDayIndex((prev) =>
@@ -407,8 +417,10 @@ const ScheduleScreen = () => {
         const normalized = lessonsData
           .map((lesson, index) => normalizeLesson(lesson, activeIso, index))
           .sort((a, b) => {
-            const aStart = parseLessonDate(a.iso, a.beginLesson)?.getTime() ?? 0;
-            const bStart = parseLessonDate(b.iso, b.beginLesson)?.getTime() ?? 0;
+            const aStart =
+              parseLessonDate(a.iso, a.beginLesson)?.getTime() ?? 0;
+            const bStart =
+              parseLessonDate(b.iso, b.beginLesson)?.getTime() ?? 0;
             return aStart - bStart;
           });
 
@@ -533,9 +545,7 @@ const ScheduleScreen = () => {
           Найти
         </motion.button>
       </form>
-      {searchError && (
-        <p className="schedule-search__error">{searchError}</p>
-      )}
+      {searchError && <p className="schedule-search__error">{searchError}</p>}
 
       <AnimatePresence>
         {searchResults.length > 0 && (
@@ -573,7 +583,9 @@ const ScheduleScreen = () => {
         </button>
         <div>
           <p>{formatWeekRange(weekDays)}</p>
-          <span>{weekOffset === 0 ? "Текущая неделя" : `Смещение: ${weekOffset}`}</span>
+          <span>
+            {weekOffset === 0 ? "Текущая неделя" : `Смещение: ${weekOffset}`}
+          </span>
         </div>
         <button type="button" onClick={() => handleWeekChange(1)}>
           →
@@ -637,18 +649,25 @@ const ScheduleScreen = () => {
                 className="schedule-skeleton__row"
                 initial={{ opacity: 0.2 }}
                 animate={{ opacity: 0.6 }}
-                transition={{ duration: 0.8, repeat: Infinity, repeatType: "reverse" }}
+                transition={{
+                  duration: 0.8,
+                  repeat: Infinity,
+                  repeatType: "reverse",
+                }}
               />
             ))}
           </div>
         )}
 
-        {hasProfile && !isLoadingLessons && lessons.length === 0 && cacheEntry?.status === "ready" && (
-          <EmptyState
-            title="Пар нет"
-            subtitle="На выбранный день занятия не запланированы."
-          />
-        )}
+        {hasProfile &&
+          !isLoadingLessons &&
+          lessons.length === 0 &&
+          cacheEntry?.status === "ready" && (
+            <EmptyState
+              title="Пар нет"
+              subtitle="На выбранный день занятия не запланированы."
+            />
+          )}
 
         <AnimatePresence mode="sync">
           {hasProfile &&
