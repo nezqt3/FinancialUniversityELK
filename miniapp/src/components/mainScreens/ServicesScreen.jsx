@@ -70,7 +70,6 @@ const SERVICES = [
     description: "Гибкий календарь для активной жизни кампуса.",
     features: [
       "Просматривать календарь событий",
-      "Регистрироваться на мероприятия как зритель или участник",
     ],
     urls: [
       "https://www.fa.ru/for-students/student-science/events/",
@@ -155,25 +154,9 @@ const ServicesScreen = () => {
             <div className="services-detail__header">
               <p className="services-screen__eyebrow">Сервис</p>
               <h2 className="screen__title">{activeService.title}</h2>
-              {activeService.description && (
-                <p className="screen__subtitle">{activeService.description}</p>
-              )}
             </div>
 
-            {activeService.features?.length > 0 && (
-              <ul className="services-detail__feature-list">
-                {activeService.features.map((feature, index) => (
-                  <li
-                    key={`${activeService.id}-detail-${index}`}
-                    onClick={() =>
-                      window.open(activeService.urls[index], "_blank")
-                    }
-                  >
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-            )}
+          
 
             <motion.div
               className="services-detail__content"
