@@ -1,6 +1,5 @@
 import { motion } from "motion/react";
 import QuestionMark from "../static/question-mark.svg";
-import Settings from "../static/settings.svg";
 import { UNIVERSITIES as DEFAULT_UNIVERSITIES } from "../config/universities";
 
 const ChooseUniversity = ({
@@ -33,13 +32,6 @@ const ChooseUniversity = ({
         <h2 className="choose-university__header-left-title">
           Выберите ваш вуз
         </h2>
-      </div>
-      <div className="choose-university__header-settings-div">
-        <img
-          src={Settings}
-          alt="settings"
-          className="choose-university__header-settings"
-        />
       </div>
     </div>
 

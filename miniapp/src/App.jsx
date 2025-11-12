@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import StartScreen from "./components/StartScreen";
 import ChooseUniversity from "./components/ChooseUniversity";
@@ -8,6 +8,7 @@ import ServicesScreen from "./components/mainScreens/ServicesScreen";
 import NewsScreen from "./components/mainScreens/NewsScreen";
 import ProjectsScreen from "./components/mainScreens/ProjectsScreen";
 import AccountScreen from "./components/mainScreens/AccountScreen";
+import SettingsScreen from "./components/mainScreens/SettingsScreen";
 import useSwipeNavigation from "./hooks/useSwipeNavigation";
 import "./styles/main.scss";
 import { useUniversity } from "./context/UniversityContext.jsx";
@@ -18,8 +19,10 @@ const SCREEN_COMPONENTS = {
   news: NewsScreen,
   projects: ProjectsScreen,
   account: AccountScreen,
+  settings: SettingsScreen,
 };
 
+const EXTRA_SCREENS = ["settings"];
 const SCREEN_KEYS = MENU_ITEMS.map(({ key }) => key);
 const SWIPE_THRESHOLD = 60;
 
@@ -64,14 +67,35 @@ const FLOW_TRANSITION = {
 };
 
 const App = () => {
-  const [flowStage, setFlowStage] = useState(FLOW_STAGES.INTRO);
-  const [activeScreen, setActiveScreen] = useState(MENU_ITEMS[0].key);
-  const [direction, setDirection] = useState(0);
   const { university: selectedUniversity, universities, selectUniversity } =
     useUniversity();
+  const [flowStage, setFlowStage] = useState(() =>
+    selectedUniversity ? FLOW_STAGES.MAIN : FLOW_STAGES.INTRO,
+  );
+  const [activeScreen, setActiveScreen] = useState(MENU_ITEMS[0].key);
+  const [direction, setDirection] = useState(0);
+
+  const getNavigationIndex = useCallback((key) => {
+    if (key === "settings") {
+      return SCREEN_KEYS.indexOf("account");
+    }
+    return SCREEN_KEYS.indexOf(key);
+  }, []);
 
   const ActiveScreen = SCREEN_COMPONENTS[activeScreen] ?? ScheduleScreen;
-  const activeIndex = Math.max(SCREEN_KEYS.indexOf(activeScreen), 0);
+  const activeIndex = Math.max(getNavigationIndex(activeScreen), 0);
+  const menuActiveItem = activeScreen === "settings" ? "account" : activeScreen;
+
+  useEffect(() => {
+    if (selectedUniversity && flowStage !== FLOW_STAGES.MAIN) {
+      setFlowStage(FLOW_STAGES.MAIN);
+      return;
+    }
+
+    if (!selectedUniversity && flowStage === FLOW_STAGES.MAIN) {
+      setFlowStage(FLOW_STAGES.UNIVERSITY);
+    }
+  }, [flowStage, selectedUniversity]);
 
   const handleScreenChange = useCallback(
     (nextKey) => {
@@ -79,16 +103,23 @@ const App = () => {
         return;
       }
 
-      const nextIndex = SCREEN_KEYS.indexOf(nextKey);
+      const nextIndex = getNavigationIndex(nextKey);
+      const currentIndex = getNavigationIndex(activeScreen);
 
-      if (nextIndex === -1) {
+      if (nextIndex === -1 && nextKey !== "settings") {
         return;
       }
 
-      setDirection(nextIndex > activeIndex ? 1 : -1);
+      const isSettingsTransition =
+        nextKey === "settings" || activeScreen === "settings";
+      if (isSettingsTransition) {
+        setDirection(nextKey === "settings" ? 1 : -1);
+      } else {
+        setDirection(nextIndex > currentIndex ? 1 : -1);
+      }
       setActiveScreen(nextKey);
     },
-    [activeIndex, activeScreen],
+    [activeScreen, getNavigationIndex],
   );
 
   const goToNeighbor = useCallback(
@@ -107,7 +138,7 @@ const App = () => {
   );
 
   const swipeHandlers = useSwipeNavigation({
-    enabled: flowStage === FLOW_STAGES.MAIN,
+    enabled: flowStage === FLOW_STAGES.MAIN && activeScreen !== "settings",
     threshold: SWIPE_THRESHOLD,
     onSwipe: goToNeighbor,
   });
@@ -182,13 +213,13 @@ const App = () => {
                       exit="exit"
                       transition={SCREEN_TRANSITION}
                     >
-                      <ActiveScreen />
+                      <ActiveScreen onNavigate={handleScreenChange} />
                     </motion.div>
                   </AnimatePresence>
                 </div>
               </main>
               <MenuBar
-                activeItem={activeScreen}
+                activeItem={menuActiveItem}
                 onChange={handleScreenChange}
               />
             </div>

@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useUniversity } from "../../context/UniversityContext.jsx";
+import SettingsIcon from "../../static/settings.svg";
 
 const SKELETON_ITEMS = Array.from({ length: 1 }, (_, i) => i);
 
-const AccountScreen = () => {
+const AccountScreen = ({ onNavigate }) => {
   const [loading, setLoading] = useState(true);
   const [profileData, setProfileData] = useState(null);
   const { university } = useUniversity();
@@ -26,14 +27,28 @@ const AccountScreen = () => {
     return () => clearTimeout(timer);
   }, [university]);
 
+  const handleOpenSettings = () => {
+    onNavigate?.("settings");
+  };
+
   return (
     <section className="screen account-screen">
-      <div className="account-screen__header">
-        <h2 className="screen__title">Профиль</h2>
-        <p className="screen__subtitle">
-          Настройки и информация о вашем аккаунте
-        </p>
-      </div>
+      <header className="account-screen__header">
+        <div className="account-screen__header-content">
+          <h2 className="account-screen__title">Профиль</h2>
+          <p className="account-screen__subtitle">
+            Настройки и информация о вашем аккаунте
+          </p>
+        </div>
+        <button
+          type="button"
+          className="account-screen__settings-button"
+          onClick={handleOpenSettings}
+          aria-label="Открыть настройки"
+        >
+          <img src={SettingsIcon} alt="" aria-hidden="true" />
+        </button>
+      </header>
 
       <AnimatePresence mode="wait" initial={false}>
         {loading ? (

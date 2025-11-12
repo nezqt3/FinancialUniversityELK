@@ -16,25 +16,70 @@
   flex: 1;
   overflow-y: auto;
   padding: 2rem 1rem 3rem;
-  background: $color-surface;
+  background: $color-white;
   font-family: $nunito;
 }
 
 .account-screen__header {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  padding-right: 4.5rem;
+  background: $color-white;
+  border-radius: 32px;
+  border: 1px solid rgba($color-border, 0.9);
+  box-shadow: 0 28px 55px rgba($color-text-primary, 0.08);
+}
 
-  .screen__title {
-    font-family: $raleway;
-    font-size: clamp(1.3rem, 4vw, 1.8rem);
-    font-weight: 700;
-    color: $color-text-primary;
+.account-screen__header-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.account-screen__eyebrow {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: $color-text-muted;
+}
+
+.account-screen__title {
+  font-family: $raleway;
+  font-size: clamp(1.35rem, 4vw, 2rem);
+  font-weight: 700;
+  color: $color-text-primary;
+}
+
+.account-screen__subtitle {
+  font-size: 0.95rem;
+  color: $color-text-muted;
+}
+
+.account-screen__settings-button {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  border: none;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  background: rgba($color-brand-primary, 0.1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: rgba($color-brand-primary, 0.2);
   }
 
-  .screen__subtitle {
-    font-size: 0.95rem;
-    color: $color-text-muted;
+  img {
+    width: 22px;
+    height: 22px;
   }
 }
 
@@ -168,5 +213,10 @@
       align-self: stretch;
       text-align: center;
     }
+  }
+
+  .account-screen__header {
+    padding: 1.25rem;
+    padding-right: 4rem;
   }
 }
