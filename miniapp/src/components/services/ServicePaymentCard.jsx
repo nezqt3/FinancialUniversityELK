@@ -86,14 +86,26 @@ const ServicePaymentCard = ({
             aria-label={`Оплата: ${activeOption.title}`}
           >
             <header className="service-payment-overlay__header">
-              <button
-                type="button"
-                className="service-payment-overlay__back"
-                onClick={handleCloseOverlay}
-              >
-                <span aria-hidden="true">←</span>
-                Назад
-              </button>
+              <div className="service-payment-overlay__actions">
+                <button
+                  type="button"
+                  className="service-payment-overlay__back"
+                  onClick={handleCloseOverlay}
+                >
+                  <span aria-hidden="true">←</span>
+                  Назад
+                </button>
+
+                <a
+                  className="service-payment-overlay__external"
+                  href={activeOption.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  В браузере
+                  <span aria-hidden="true">→</span>
+                </a>
+              </div>
 
               <div className="service-payment-overlay__titles">
                 {eyebrow && (
@@ -109,15 +121,6 @@ const ServicePaymentCard = ({
                 )}
               </div>
 
-              <a
-                className="service-payment-overlay__external"
-                href={activeOption.url}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                В браузере
-                <span aria-hidden="true">↗</span>
-              </a>
             </header>
 
             <div className="service-payment-overlay__frame" aria-live="polite">
