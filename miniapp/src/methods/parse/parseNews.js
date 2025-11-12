@@ -1,5 +1,10 @@
 // Получение актуальных новостей с fa.ru
 
+const decodeHTML = (str) => {
+  const doc = new DOMParser().parseFromString(str, "text/html");
+  return doc.documentElement.textContent;
+};
+
 export const getNews = async () => {
   try {
     const response = await fetch(
@@ -45,10 +50,12 @@ export const getNewsContent = async (url) => {
 
     const sectionHtml = match[1];
 
-    const text = sectionHtml
-      .replace(/<[^>]+>/g, "")
-      .replace(/\s+/g, " ")
-      .trim();
+    const text = decodeHTML(
+      sectionHtml
+        .replace(/<[^>]+>/g, "")
+        .replace(/\s+/g, " ")
+        .trim()
+    );
 
     return text;
   } catch (e) {

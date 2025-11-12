@@ -35,6 +35,11 @@ const SERVICES = [
       "Оплачивать обучение",
       "Подавать заявление на перевод или академический отпуск",
     ],
+    urls: [
+      "https://www.fa.ru/university/services/ez/",
+      "https://www.fa.ru/for-students/oplata/online/",
+      "https://www.fa.ru/employee/worker/docs-vac/",
+    ],
   },
   {
     id: "dorm",
@@ -49,6 +54,11 @@ const SERVICES = [
       "Заказывать дополнительные услуги",
       "Оформлять пропуск для гостя",
     ],
+    urls: [
+      "https://www.fa.ru/for-students/oplata/",
+      "https://www.fa.ru/university/services/ez/",
+      "https://www.fa.ru/employee/worker/new/pass/",
+    ],
   },
   {
     id: "activities",
@@ -62,6 +72,10 @@ const SERVICES = [
       "Просматривать календарь событий",
       "Регистрироваться на мероприятия как зритель или участник",
     ],
+    urls: [
+      "https://www.fa.ru/for-students/student-science/events/",
+      "https://my.fa.ru/auth/login",
+    ],
   },
   {
     id: "library",
@@ -72,6 +86,7 @@ const SERVICES = [
     accentBg: "rgba(249, 115, 22, 0.12)",
     accentBorder: "rgba(249, 115, 22, 0.3)",
     features: ["Заказывать книги", "Получать доступ к электронной библиотеке"],
+    urls: ["http://library.fa.ru", "http://www.library.fa.ru"],
   },
   {
     id: "career",
@@ -85,14 +100,21 @@ const SERVICES = [
       "Получать консультации от центра карьеры",
       "Просматривать и откликаться на вакансии",
     ],
+    urls: [
+      "https://www.fa.ru/employment/karernyy-putevoditel/",
+      "https://www.fa.ru/employee/vacancy/",
+    ],
   },
 ];
 
 const ServicesScreen = () => {
   const [activeServiceId, setActiveServiceId] = useState(null);
 
-  const activeService = SERVICES.find(({ id }) => id === activeServiceId) ?? null;
-  const ActiveServiceComponent = activeService ? SERVICE_COMPONENTS[activeService.id] : null;
+  const activeService =
+    SERVICES.find(({ id }) => id === activeServiceId) ?? null;
+  const ActiveServiceComponent = activeService
+    ? SERVICE_COMPONENTS[activeService.id]
+    : null;
 
   const handleOpenService = (serviceId) => setActiveServiceId(serviceId);
   const handleCardKeyDown = (event, serviceId, isDisabled) => {
@@ -107,7 +129,9 @@ const ServicesScreen = () => {
   };
 
   return (
-    <section className={`screen services-screen${activeService ? " services-screen--detail" : ""}`}>
+    <section
+      className={`screen services-screen${activeService ? " services-screen--detail" : ""}`}
+    >
       <AnimatePresence mode="wait" initial={false}>
         {activeService ? (
           <motion.div
@@ -139,7 +163,14 @@ const ServicesScreen = () => {
             {activeService.features?.length > 0 && (
               <ul className="services-detail__feature-list">
                 {activeService.features.map((feature, index) => (
-                  <li key={`${activeService.id}-detail-${index}`}>{feature}</li>
+                  <li
+                    key={`${activeService.id}-detail-${index}`}
+                    onClick={() =>
+                      window.open(activeService.urls[index], "_blank")
+                    }
+                  >
+                    {feature}
+                  </li>
                 ))}
               </ul>
             )}
@@ -153,7 +184,9 @@ const ServicesScreen = () => {
               {ActiveServiceComponent ? (
                 <ActiveServiceComponent />
               ) : (
-                <p className="service-detail-card__placeholder">Раздел в разработке.</p>
+                <p className="service-detail-card__placeholder">
+                  Раздел в разработке.
+                </p>
               )}
             </motion.div>
           </motion.div>
@@ -168,7 +201,9 @@ const ServicesScreen = () => {
           >
             <div className="services-screen__header">
               <h2 className="screen__title">Сервисы кампуса</h2>
-              <p className="screen__subtitle">Различные решения для вашего удобства</p>
+              <p className="screen__subtitle">
+                Различные решения для вашего удобства
+              </p>
             </div>
 
             <div className="services-grid">
@@ -191,7 +226,9 @@ const ServicesScreen = () => {
                       }
                       handleOpenService(service.id);
                     }}
-                    onKeyDown={(event) => handleCardKeyDown(event, service.id, isDisabled)}
+                    onKeyDown={(event) =>
+                      handleCardKeyDown(event, service.id, isDisabled)
+                    }
                     style={{
                       "--services-accent": service.accent,
                       "--services-accent-bg": service.accentBg,
@@ -208,16 +245,23 @@ const ServicesScreen = () => {
 
                     <div className="services-card__content">
                       <div className="services-card__header">
-                        <h3 className="services-card__title">{service.title}</h3>
+                        <h3 className="services-card__title">
+                          {service.title}
+                        </h3>
                       </div>
 
                       {service.description && (
-                        <p className="services-card__description">{service.description}</p>
+                        <p className="services-card__description">
+                          {service.description}
+                        </p>
                       )}
 
                       <ul className="services-card__features">
                         {service.features.map((feature, index) => (
-                          <li key={`${service.id}-${index}`} className="services-card__feature">
+                          <li
+                            key={`${service.id}-${index}`}
+                            className="services-card__feature"
+                          >
                             {feature}
                           </li>
                         ))}
@@ -237,7 +281,10 @@ const ServicesScreen = () => {
                         whileTap={servicesTapFeedback}
                       >
                         {isDisabled ? "Скоро" : "Открыть"}
-                        <span aria-hidden="true" className="services-card__cta-icon">
+                        <span
+                          aria-hidden="true"
+                          className="services-card__cta-icon"
+                        >
                           →
                         </span>
                       </motion.button>

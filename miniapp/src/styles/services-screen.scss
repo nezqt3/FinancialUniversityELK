@@ -76,7 +76,11 @@
   font-size: 1.15rem;
   font-weight: 700;
   color: $color-white;
-  background: linear-gradient(135deg, var(--services-accent), rgba($color-white, 0.12));
+  background: linear-gradient(
+    135deg,
+    var(--services-accent),
+    rgba($color-white, 0.12)
+  );
   box-shadow: inset 0 0 0 1px rgba($color-white, 0.25);
   flex-shrink: 0;
 }
@@ -131,7 +135,8 @@
   left: 0.2rem;
   top: 0.55rem;
   background: var(--services-accent, $color-brand-secondary);
-  box-shadow: 0 0 0 5px var(--services-accent-bg, rgba($color-brand-secondary, 0.2));
+  box-shadow: 0 0 0 5px
+    var(--services-accent-bg, rgba($color-brand-secondary, 0.2));
 }
 
 .services-card__cta {
@@ -149,8 +154,11 @@
   gap: 0.35rem;
   cursor: pointer;
   font: inherit;
-  box-shadow: inset 0 0 0 1px var(--services-accent-border, rgba($color-brand-secondary, 0.25));
-  transition: background 0.2s ease, color 0.2s ease;
+  box-shadow: inset 0 0 0 1px
+    var(--services-accent-border, rgba($color-brand-secondary, 0.25));
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
 }
 
 .services-card__cta-icon {
@@ -188,7 +196,9 @@
   align-items: center;
   gap: 0.5rem;
   cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
 }
 
 .services-detail__header {
@@ -199,6 +209,7 @@
 
 .services-detail__feature-list {
   list-style: none;
+  cursor: pointer;
   padding: 0;
   margin: 0;
   display: flex;
