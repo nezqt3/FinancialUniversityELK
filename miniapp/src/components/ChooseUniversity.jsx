@@ -74,7 +74,10 @@ const ChooseUniversity = ({
               type="button"
               className="choose-university__universities-university-choose"
               disabled={isSelected}
-              onClick={() => onSelect(university)}
+              onClick={() => {
+                onSelect(university);
+                localStorage.setItem("university", university.title);
+              }}
             >
               {isSelected ? "Выбрано" : "Выбрать"}
             </button>
