@@ -4,11 +4,11 @@ import { getNews, getNewsContent } from "../../methods/parse/parseNews";
 import {
   newsDetailMotion,
   newsOverviewMotion,
+  newsTapFeedback,
 } from "../../animations/NewsAnim";
 
-// Простая анимация переходов
-
-const newsTapFeedback = { scale: 0.95 };
+// Время жизни кэша (в миллисекундах)
+const CACHE_LIFETIME = 1000 * 60 * 60; // 1 час
 
 export default function NewsScreen() {
   const [news, setNews] = useState([]);
@@ -20,8 +20,26 @@ export default function NewsScreen() {
   useEffect(() => {
     const fetchNews = async () => {
       try {
+        // --- Проверяем кэш ---
+        const cached = localStorage.getItem("newsData");
+        const cachedTime = localStorage.getItem("newsDataTime");
+        const now = Date.now();
+
+        if (cached && cachedTime && now - cachedTime < CACHE_LIFETIME) {
+          // Используем кэшированные данные
+          const parsedNews = JSON.parse(cached);
+          setNews(parsedNews);
+          setLoading(false);
+          return;
+        }
+
+        // --- Если нет кэша или устарел — грузим заново ---
         const newNews = await getNews();
         setNews(newNews || []);
+
+        // --- Сохраняем в кэш ---
+        localStorage.setItem("newsData", JSON.stringify(newNews));
+        localStorage.setItem("newsDataTime", now.toString());
       } catch (error) {
         console.error("Ошибка при загрузке новостей:", error);
         setNews([]);
@@ -36,9 +54,23 @@ export default function NewsScreen() {
   const openNews = async (item) => {
     setActiveNews(item);
     setContentLoading(true);
+
+    // --- Проверяем, есть ли кэш для конкретной новости ---
+    const cachedContent = localStorage.getItem(`newsContent_${item.url}`);
+    if (cachedContent) {
+      setNewsContent(cachedContent);
+      setContentLoading(false);
+      return;
+    }
+
     const content = await getNewsContent(item.url);
-    setNewsContent(content || "Не удалось загрузить содержимое новости 😢");
+    const finalText = content || "Не удалось загрузить содержимое новости 😢";
+
+    setNewsContent(finalText);
     setContentLoading(false);
+
+    // --- Сохраняем контент новости в кэш ---
+    localStorage.setItem(`newsContent_${item.url}`, finalText);
   };
 
   const backToList = () => {
@@ -52,7 +84,6 @@ export default function NewsScreen() {
     >
       <AnimatePresence mode="wait" initial={false}>
         {activeNews ? (
-          // ---------- ДЕТАЛИ НОВОСТИ ----------
           <motion.div
             key="news-detail"
             className="news-detail"
@@ -95,7 +126,6 @@ export default function NewsScreen() {
             </motion.div>
           </motion.div>
         ) : (
-          // ---------- СПИСОК НОВОСТЕЙ ----------
           <motion.div
             key="news-overview"
             className="news-overview"

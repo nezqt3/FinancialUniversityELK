@@ -11,3 +11,5 @@ export const newsDetailMotion = {
   exit: { opacity: 0, y: -30 },
   transition: { duration: 0.3 },
 };
+
+export const newsTapFeedback = { scale: 0.95 };
