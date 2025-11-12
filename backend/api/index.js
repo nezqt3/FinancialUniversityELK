@@ -250,4 +250,20 @@ app.get("/api/library", async (req, res) => {
   }
 });
 
+app.get("/api/links", async (req, res) => {
+  try {
+    const response = await fetch("https://www.fa.ru/university/services/ez/");
+
+    if (!response.ok) {
+      return res
+        .status(response.status)
+        .send({ error: "Ошибка загрузки данных" });
+    }
+    const html = await response.text();
+    res.send(html);
+  } catch (e) {
+    res.status(500).send({ error: e.message });
+  }
+});
+
 app.listen(4000, () => console.log("Server running on port 4000"));
