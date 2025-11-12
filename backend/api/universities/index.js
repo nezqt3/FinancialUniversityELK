@@ -1,7 +1,9 @@
 const financialUniversity = require("./financialUniversity");
+const rgueUniversity = require("./rgueUniversity");
 
 const UNIVERSITIES = {
   [financialUniversity.id]: financialUniversity,
+  [rgueUniversity.id]: rgueUniversity,
 };
 
 const DEFAULT_UNIVERSITY_ID = financialUniversity.id;

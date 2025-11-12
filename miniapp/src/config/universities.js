@@ -1,4 +1,5 @@
 import LogoFin from "../static/logoFin.svg";
+import LogoRgeu from "../static/logoRgeu.png";
 
 export const UNIVERSITIES = [
   {
@@ -21,6 +22,16 @@ export const UNIVERSITIES = [
         ],
       },
     },
+  },
+  {
+    id: "rgeu-university",
+    apiId: "rgeu-university",
+    title: "Ростовский государственный экономический университет (РИНХ)",
+    shortTitle: "РГЭУ (РИНХ)",
+    domain: "https://rsue.ru",
+    brandColor: "#0e1060",
+    logo: LogoRgeu,
+    services: {},
   },
 ];
 
