@@ -47,14 +47,14 @@ export default function NewsScreen() {
   const featuredNews = news[0] ?? null;
   const otherNews = featuredNews ? news.slice(1) : news;
 
-  const loadNews = useCallback(async () => {
+  const loadNews = useCallback(async (forceRefresh = false) => {
     setError("");
 
-    const cached = localStorage.getItem("newsData");
-    const cachedTimeRaw = localStorage.getItem("newsDataTime");
+    const cached = forceRefresh ? null : localStorage.getItem("newsData");
+    const cachedTimeRaw = forceRefresh ? null : localStorage.getItem("newsDataTime");
     const cachedTime = cachedTimeRaw ? Number(cachedTimeRaw) : null;
 
-    if (cached && cachedTime && Date.now() - cachedTime < CACHE_LIFETIME) {
+    if (!forceRefresh && cached && cachedTime && Date.now() - cachedTime < CACHE_LIFETIME) {
       try {
         const parsedNews = JSON.parse(cached);
         setNews(parsedNews);
@@ -133,7 +133,7 @@ export default function NewsScreen() {
       <motion.button
         type="button"
         className="news-empty__cta"
-        onClick={loadNews}
+        onClick={() => loadNews(true)}
         whileTap={newsTapFeedback}
       >
         Обновить

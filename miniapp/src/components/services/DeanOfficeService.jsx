@@ -28,14 +28,7 @@ const FEATURE_STUBS = [
       "Готовим единые формы с отслеживанием статусов и комментариями.",
     statusLabel: "В разработке",
     iconLabel: "REQ",
-  },
-  {
-    id: "timeline",
-    title: "История обращений",
-    description: "Будет видно, кто обрабатывает заявку и когда ждать ответ.",
-    statusLabel: "Скоро",
-    iconLabel: "LOG",
-  },
+  }
 ];
 
 const DeanOfficeService = () => {
