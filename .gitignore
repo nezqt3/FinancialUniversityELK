@@ -81,6 +81,7 @@ Desktop.ini
 *.swo
 *.orig
 *.rej
+backend/api/storage/data/
 
 # Local SSL/dev certs
 *.pem

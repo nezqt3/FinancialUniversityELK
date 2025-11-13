@@ -1,8 +1,9 @@
-const ProjectsScreen = () => (
-  <section className="screen">
-    <h2 className="screen__title">Проектная деятельность</h2>
-    <p className="screen__subtitle">Здесь будут проекты студентов и кружков.</p>
-  </section>
-);
+import { useAccount } from "../../context/AccountContext.jsx";
+import ProjectActivityScreen from "../projects/ProjectActivityScreen.jsx";
+
+const ProjectsScreen = () => {
+  const { account } = useAccount();
+  return <ProjectActivityScreen account={account} />;
+};
 
 export default ProjectsScreen;

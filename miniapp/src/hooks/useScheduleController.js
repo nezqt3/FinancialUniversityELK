@@ -8,6 +8,9 @@ import {
   formatWeekRange,
   normalizeLesson,
   toISODate,
+  readStoredScheduleProfile,
+  persistScheduleProfile,
+  SCHEDULE_PROFILE_EVENT,
 } from "../methods/schedule/scheduleUtils";
 
 const SEARCH_DEBOUNCE_MS = 250;
@@ -57,41 +60,52 @@ const useScheduleController = () => {
     Boolean(searchQuery.trim()) ||
     searchResults.length > 0;
 
-  const [selectedProfile, setSelectedProfile] = useState(() => {
-    if (typeof window === "undefined") {
-      return null;
-    }
-    try {
-      const stored = window.localStorage.getItem(storageKey);
-      return stored ? JSON.parse(stored) : null;
-    } catch {
-      return null;
-    }
-  });
+  const [selectedProfile, setSelectedProfile] = useState(() =>
+    readStoredScheduleProfile(storageKey),
+  );
+  const skipPersistRef = useRef(false);
 
   useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-    try {
-      const stored = window.localStorage.getItem(storageKey);
-      setSelectedProfile(stored ? JSON.parse(stored) : null);
-    } catch {
-      setSelectedProfile(null);
-    }
+    skipPersistRef.current = true;
+    setSelectedProfile(readStoredScheduleProfile(storageKey));
     setLessonsCache({});
   }, [storageKey]);
 
   useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
+    if (!storageKey) {
+      return undefined;
     }
-    if (!selectedProfile) {
-      window.localStorage.removeItem(storageKey);
-      return;
+    if (skipPersistRef.current) {
+      skipPersistRef.current = false;
+      return undefined;
     }
-    window.localStorage.setItem(storageKey, JSON.stringify(selectedProfile));
+    persistScheduleProfile(storageKey, selectedProfile);
+    return undefined;
   }, [selectedProfile, storageKey]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !storageKey) {
+      return undefined;
+    }
+    const handleProfileUpdate = (event) => {
+      const detail = event.detail ?? {};
+      if (detail.storageKey !== storageKey) {
+        return;
+      }
+      skipPersistRef.current = true;
+      setSelectedProfile(detail.profile || null);
+    };
+    window.addEventListener(
+      SCHEDULE_PROFILE_EVENT,
+      handleProfileUpdate,
+    );
+    return () => {
+      window.removeEventListener(
+        SCHEDULE_PROFILE_EVENT,
+        handleProfileUpdate,
+      );
+    };
+  }, [storageKey]);
 
   useEffect(() => {
     if (typeof window === "undefined") {

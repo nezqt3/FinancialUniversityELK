@@ -1,43 +1,76 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { useUniversity } from "../../context/UniversityContext.jsx";
+import { useAccount } from "../../context/AccountContext.jsx";
 import SettingsIcon from "../../static/settings.svg";
+import AccountProfileCard from "../account/AccountProfileCard.jsx";
+import LoginScreen from "../account/LoginScreen.jsx";
+import RegistrationScreen from "../account/RegistrationScreen.jsx";
 
 const SKELETON_ITEMS = Array.from({ length: 1 }, (_, i) => i);
 
 const AccountScreen = ({ onNavigate }) => {
-  const [loading, setLoading] = useState(true);
-  const [profileData, setProfileData] = useState(null);
-  const { university } = useUniversity();
-
-  /* Будем парсить из max */
-
-  useEffect(() => {
-    setLoading(true);
-    const timer = setTimeout(() => {
-      setProfileData({
-        name: "Иван Иванов",
-        email: "ivan@example.com",
-        avatar: "https://i.pravatar.cc/150?img=12",
-        university: university?.title ?? "Вуз не выбран",
-      });
-      setLoading(false);
-    }, 1500);
-
-    return () => clearTimeout(timer);
-  }, [university]);
+  const { account, isInitializing, logout } = useAccount();
+  const [authMode, setAuthMode] = useState("login");
 
   const handleOpenSettings = () => {
     onNavigate?.("settings");
+  };
+
+  const renderSkeleton = () => (
+    <div className="account-skeleton">
+      {SKELETON_ITEMS.map((_, index) => (
+        <motion.div
+          key={index}
+          className="account-skeleton__item"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          <div className="account-skeleton__avatar" />
+          <div className="account-skeleton__line" />
+        </motion.div>
+      ))}
+    </div>
+  );
+
+  const renderAuth = () => (
+    <div className="account-auth">
+      <div className="account-auth__body">
+        {authMode === "login" ? (
+          <LoginScreen onSwitch={() => setAuthMode("register")} />
+        ) : (
+          <RegistrationScreen onSwitch={() => setAuthMode("login")} />
+        )}
+      </div>
+    </div>
+  );
+
+  const renderContent = () => {
+    if (isInitializing) {
+      return renderSkeleton();
+    }
+    if (account) {
+      return (
+        <AccountProfileCard account={account} onLogout={logout} />
+      );
+    }
+    return renderAuth();
   };
 
   return (
     <section className="screen account-screen">
       <header className="account-screen__header">
         <div className="account-screen__header-content">
-          <h2 className="account-screen__title">Профиль</h2>
+          <p className="account-screen__eyebrow">
+            {account ? "Профиль" : "Создайте аккаунт"}
+          </p>
+          <h2 className="account-screen__title">
+            {account ? "Ваши данные" : "Личный кабинет"}
+          </h2>
           <p className="account-screen__subtitle">
-            Настройки и информация о вашем аккаунте
+            {account
+              ? "Здесь хранится краткая информация о вашем аккаунте."
+              : "Сохраните ФИО, вуз и группу, чтобы быстрее пользоваться сервисами."}
           </p>
         </div>
         <button
@@ -51,50 +84,15 @@ const AccountScreen = ({ onNavigate }) => {
       </header>
 
       <AnimatePresence mode="wait" initial={false}>
-        {loading ? (
-          <div className="account-skeleton">
-            {SKELETON_ITEMS.map((_, index) => (
-              <motion.div
-                key={index}
-                className="account-skeleton__item"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.3 }}
-              >
-                <div className="account-skeleton__avatar" />
-                <div className="account-skeleton__line" />
-              </motion.div>
-            ))}
-          </div>
-        ) : profileData ? (
-          <motion.div
-            className="account-card"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-          >
-            <div className="account-card__avatar">
-              <img
-                src={profileData.avatar}
-                alt={`${profileData.name} avatar`}
-              />
-            </div>
-
-            <div className="account-card__info">
-              <span className="account-card__info-name">
-                {profileData.name}
-              </span>
-              <span className="account-card__info-email">
-                {profileData.email}
-              </span>
-              <span>{profileData.university}</span>
-            </div>
-          </motion.div>
-        ) : (
-          <div className="news-empty">
-            <p>Данные профиля недоступны.</p>
-          </div>
-        )}
+        <motion.div
+          key={account ? "account-view" : isInitializing ? "loading" : authMode}
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -16 }}
+          transition={{ duration: 0.3 }}
+        >
+          {renderContent()}
+        </motion.div>
       </AnimatePresence>
     </section>
   );

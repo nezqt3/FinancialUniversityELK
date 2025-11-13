@@ -2,6 +2,48 @@ export const STORAGE_KEY = "max-miniapp:schedule-profile";
 export const getScheduleStorageKey = (universityId) =>
   universityId ? `${STORAGE_KEY}:${universityId}` : STORAGE_KEY;
 
+export const SCHEDULE_PROFILE_EVENT = "max-miniapp:schedule-profile:update";
+
+const dispatchScheduleProfileEvent = (storageKey, profile) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.dispatchEvent(
+    new CustomEvent(SCHEDULE_PROFILE_EVENT, {
+      detail: {
+        storageKey,
+        profile: profile || null,
+      },
+    }),
+  );
+};
+
+export const readStoredScheduleProfile = (storageKey) => {
+  if (typeof window === "undefined" || !storageKey) {
+    return null;
+  }
+  try {
+    const raw = window.localStorage.getItem(storageKey);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+export const persistScheduleProfile = (storageKey, profile, options = {}) => {
+  if (typeof window === "undefined" || !storageKey) {
+    return;
+  }
+  if (profile) {
+    window.localStorage.setItem(storageKey, JSON.stringify(profile));
+  } else {
+    window.localStorage.removeItem(storageKey);
+  }
+  if (!options?.silent) {
+    dispatchScheduleProfileEvent(storageKey, profile);
+  }
+};
+
 const MONTHS_GENITIVE = [
   "января",
   "февраля",
