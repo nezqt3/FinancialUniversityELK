@@ -1,23 +1,12 @@
+const {
+  ensureAbsoluteUrl,
+  fetchText,
+  fetchJson,
+  sanitizeText,
+} = require("./methods/usefulMethods");
+
 const UNIVERSITY_ID = "financial-university";
 const TITLE = "Финансовый университет при Правительстве РФ";
-
-const ensureAbsoluteUrl = (url, base = "https://www.fa.ru") => {
-  if (!url) {
-    return "";
-  }
-  if (/^https?:/i.test(url)) {
-    return url;
-  }
-  return `${base}${url}`;
-};
-
-const sanitizeText = (value) =>
-  (value || "")
-    .replace(/<[^>]*>/g, " ")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&#160;/gi, " ")
-    .replace(/\s+/g, " ")
-    .trim();
 
 const joinByStartTime = (data) =>
   Object.values(
@@ -65,24 +54,10 @@ const joinByStartTime = (data) =>
     }, {})
   );
 
-const fetchJson = async (url) => {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
-  }
-  return response.json();
-};
-
-const fetchText = async (url, options) => {
-  const response = await fetch(url, options);
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
-  }
-  return response.text();
-};
-
 const searchSchedule = async (term) => {
-  const data = await fetchJson(`https://ruz.fa.ru/api/search?term=${encodeURIComponent(term)}`);
+  const data = await fetchJson(
+    `https://ruz.fa.ru/api/search?term=${encodeURIComponent(term)}`
+  );
   return data
     .filter((elem) => elem.type !== "lecturer")
     .map((item) => ({
@@ -150,9 +125,12 @@ const getCalendar = async (from, to) => {
 
 const getDeanOfficeBids = async () => {
   const html = await fetchText("https://www.fa.ru/university/services/ez/");
-  const cardRegex = /<article[^>]*class="page-card-link app-card"[^>]*>([\s\S]*?)<\/article>/g;
-  const titleRegex = /<h4[^>]*class="page-card-link__title"[^>]*>([\s\S]*?)<\/h4>/i;
-  const urlRegex = /<a[^>]*class="ui-icon-button[^"']*?_primary[^"']*"[^>]*href="([^"]+)"/i;
+  const cardRegex =
+    /<article[^>]*class="page-card-link app-card"[^>]*>([\s\S]*?)<\/article>/g;
+  const titleRegex =
+    /<h4[^>]*class="page-card-link__title"[^>]*>([\s\S]*?)<\/h4>/i;
+  const urlRegex =
+    /<a[^>]*class="ui-icon-button[^"']*?_primary[^"']*"[^>]*href="([^"]+)"/i;
 
   const bids = [];
   let match;
@@ -215,7 +193,9 @@ const getNewsContent = async (url) => {
 };
 
 const getLibraryResources = async (language = "rus") => {
-  const html = await fetchText(`https://library.fa.ru/res_mainres.asp?cat=${language}`);
+  const html = await fetchText(
+    `https://library.fa.ru/res_mainres.asp?cat=${language}`
+  );
   return html;
 };
 
