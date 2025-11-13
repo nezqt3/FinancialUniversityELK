@@ -4,13 +4,38 @@ const UNIVERSITY_ID = "rgeu-university";
 const TITLE = "Ростовский государственный экономический университет (РИНХ)";
 const BASE_URL = "https://rsue.ru";
 
-const getScheduleRgue = async (group) => {
+const getScheduleRgeu = async (group) => {
   const response = await fetch(
     `https://rasp-api.rsue.ru/api/v1/schedule/lessons/${group}/`
   );
+
+  return response.json();
 };
 
-const getNewsRgue = async () => {
+const searchSchedule = async (group) => {
+  try {
+    const response = await fetch(
+      "https://rasp-api.rsue.ru/api/v1/schedule/search/"
+    );
+    const data = await response.json();
+
+    return data
+      .filter((elem) => elem.name.toLowerCase().includes(group.toLowerCase()))
+      .map((item) => ({
+        id: item.id,
+        label: item.name,
+        description: "",
+        type: "schedule",
+        guid: item.id,
+        isCombined: item.name.includes(";"),
+      }));
+  } catch (error) {
+    console.error("Ошибка при поиске расписания:", error);
+    return [];
+  }
+};
+
+const getNewsRgeu = async () => {
   const response = await fetch(`${BASE_URL}/universitet/novosti/`);
   if (!response.ok) throw new Error("Не удалось получить страницу новостей");
 
@@ -81,11 +106,11 @@ const getNewsContent = async (url) => {
 };
 
 const getNewsList = async () => {
-  return getNewsRgue();
+  return getNewsRgeu();
 };
 
 const getSchedule = async (group) => {
-  return getScheduleRgue(group);
+  return getScheduleRgeu(group);
 };
 
 module.exports = {
@@ -95,6 +120,7 @@ module.exports = {
   domain: "rsue.ru",
   getNewsList,
   getSchedule,
+  searchSchedule,
   getNewsContent,
   getCalendar: async () => [],
   getDeanOfficeBids: async () => [],
