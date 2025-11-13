@@ -22,7 +22,6 @@ const SCREEN_COMPONENTS = {
   settings: SettingsScreen,
 };
 
-const EXTRA_SCREENS = ["settings"];
 const SCREEN_KEYS = MENU_ITEMS.map(({ key }) => key);
 const SWIPE_THRESHOLD = 60;
 

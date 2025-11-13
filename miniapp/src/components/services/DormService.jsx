@@ -1,4 +1,3 @@
-import ServiceFeatureStub from "./ServiceFeatureStub";
 import ServicePaymentCard from "./ServicePaymentCard";
 
 const PAYMENT_OPTIONS = [
