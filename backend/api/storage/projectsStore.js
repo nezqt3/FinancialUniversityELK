@@ -1,87 +1,53 @@
-const { randomUUID } = require("node:crypto");
-const { execute, query } = require("./sqliteClient");
+const { getFirestore } = require("./firebaseClient");
 
-let isInitialized = false;
+const COLLECTION_NAME = "projects";
 
-const ensureSchema = () => {
-  if (isInitialized) {
-    return;
-  }
-  execute(`
-    CREATE TABLE IF NOT EXISTS projects (
-      id TEXT PRIMARY KEY,
-      payload TEXT NOT NULL,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    );
-  `);
-  isInitialized = true;
-};
-
-const parseRow = (row) => {
-  if (!row || !row.payload) {
-    return null;
-  }
-  try {
-    return JSON.parse(row.payload);
-  } catch (error) {
-    console.error("Failed to parse project row", error);
-    return null;
-  }
-};
-
-const listProjects = () => {
-  ensureSchema();
-  const rows = query(
-    `SELECT payload FROM projects ORDER BY datetime(updated_at) DESC;`,
-  );
-  return rows.map(parseRow).filter(Boolean);
-};
-
-const getProjectById = (projectId) => {
-  ensureSchema();
-  const rows = query(
-    `SELECT payload FROM projects WHERE id = :id LIMIT 1;`,
-    { id: projectId },
-  );
-  return parseRow(rows[0]);
-};
-
-const saveProject = (project) => {
-  ensureSchema();
-  if (!project || typeof project !== "object") {
-    throw new Error("project payload is required");
-  }
-  const id = project.id || randomUUID();
+const withTimestamps = (payload) => {
   const now = new Date().toISOString();
-  const record = {
-    ...project,
-    id,
-    createdAt: project.createdAt || now,
+  return {
+    ...payload,
+    createdAt: payload.createdAt || now,
     updatedAt: now,
   };
-  const payload = JSON.stringify(record);
-  execute(
-    `
-      INSERT INTO projects (id, payload, created_at, updated_at)
-      VALUES (:id, :payload, :createdAt, :updatedAt)
-      ON CONFLICT(id) DO UPDATE SET
-        payload = excluded.payload,
-        updated_at = excluded.updated_at;
-    `,
-    {
-      id,
-      payload,
-      createdAt: record.createdAt,
-      updatedAt: record.updatedAt,
-    },
-  );
+};
+
+const listProjects = async () => {
+  const snapshot = await getFirestore()
+    .collection(COLLECTION_NAME)
+    .orderBy("updatedAt", "desc")
+    .get();
+  return snapshot.docs.map((doc) => doc.data());
+};
+
+const getProjectById = async (projectId) => {
+  if (!projectId) {
+    return null;
+  }
+  const doc = await getFirestore()
+    .collection(COLLECTION_NAME)
+    .doc(projectId)
+    .get();
+  return doc.exists ? doc.data() : null;
+};
+
+const saveProject = async (payload) => {
+  if (!payload || typeof payload !== "object") {
+    throw new Error("Project payload is required");
+  }
+  const id = payload.id || getFirestore().collection(COLLECTION_NAME).doc().id;
+  const record = withTimestamps({
+    ...payload,
+    id,
+  });
+  await getFirestore().collection(COLLECTION_NAME).doc(id).set(record);
   return record;
 };
 
-const deleteProject = (projectId) => {
-  ensureSchema();
-  execute(`DELETE FROM projects WHERE id = :id;`, { id: projectId });
+const deleteProject = async (projectId) => {
+  if (!projectId) {
+    return;
+  }
+  await getFirestore().collection(COLLECTION_NAME).doc(projectId).delete();
 };
 
 module.exports = {

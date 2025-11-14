@@ -59,7 +59,10 @@
   height: var(--screen-height);
   background: $color-white;
   border-radius: 32px 32px 0 0; /* скругления только сверху */
-  padding: 2rem; /* внутренние отступы экрана остаются */
+  padding: 2rem;
+  padding-bottom: calc(
+    2rem + env(safe-area-inset-bottom, 0) + var(--menu-height)
+  );
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
