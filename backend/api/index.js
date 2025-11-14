@@ -59,10 +59,46 @@ const scheduleSearchHandler = withUniversity(async (req, res, university) => {
 app.get("/api/:universityId/schedule/search", scheduleSearchHandler);
 app.get("/api/schedule/search", scheduleSearchHandler);
 
+const resolveProfileByGroup = async (university, groupLabel) => {
+  if (
+    !groupLabel ||
+    !university.searchSchedule ||
+    typeof university.searchSchedule !== "function"
+  ) {
+    return null;
+  }
+  try {
+    const results = await university.searchSchedule(groupLabel);
+    if (!Array.isArray(results) || results.length === 0) {
+      return null;
+    }
+    const normalizedLabel = groupLabel.trim().toLowerCase();
+    return (
+      results.find(
+        (item) => item.label?.trim().toLowerCase() === normalizedLabel,
+      ) || results[0]
+    );
+  } catch (error) {
+    console.warn("Failed to resolve profile by groupLabel", error);
+    return null;
+  }
+};
+
 const scheduleHandler = withUniversity(async (req, res, university) => {
   const params = { ...req.query, ...req.params };
 
   try {
+    if ((!params.profileId || !params.profileType) && params.groupLabel) {
+      const profile = await resolveProfileByGroup(
+        university,
+        params.groupLabel,
+      );
+      if (profile?.id && profile?.type) {
+        params.profileId = profile.id;
+        params.profileType = profile.type;
+      }
+    }
+
     let schedule;
 
     if (university.id === "rgeu-university" && params.groupLabel) {
