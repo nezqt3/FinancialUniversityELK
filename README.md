@@ -4,12 +4,12 @@
 
 ## Состав репозитория
 
-| Путь | Назначение | Стек |
-| --- | --- | --- |
-| `backend/textbot` | Нативный бот на `@maxhub/max-bot-api`, который отдаёт стартовую кнопку мини-приложения и собирает `startapp` payload | Node.js 22, `@maxhub/max-bot-api`, `dotenv` |
-| `backend/api` | Express API, которое проксирует расписание, новости, календарь и заявки вузов, а также хранит аккаунты в SQLite | Node.js 20+, Express 5, `node-fetch`, `sqlite3` CLI |
-| `miniapp` | React-приложение NoMissed с MAX UI: расписание, сервисы кампуса, новости, проекты, личный кабинет | React 18, `motion` (Framer), SCSS, `@maxhub/max-ui` |
-| `Dockerfile` | Сборка контейнера с текстовым ботом | Node 22 base image |
+| Путь              | Назначение                                                                                                           | Стек                                                |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| `backend/textbot` | Нативный бот на `@maxhub/max-bot-api`, который отдаёт стартовую кнопку мини-приложения и собирает `startapp` payload | Node.js 22, `@maxhub/max-bot-api`, `dotenv`         |
+| `backend/api`     | Express API, которое проксирует расписание, новости, календарь и заявки вузов, а также хранит аккаунты в SQLite      | Node.js 20+, Express 5, `node-fetch`, `sqlite3` CLI |
+| `miniapp`         | React-приложение NoMissed с MAX UI: расписание, сервисы кампуса, новости, проекты, личный кабинет                    | React 18, `motion` (Framer), SCSS, `@maxhub/max-ui` |
+| `Dockerfile`      | Сборка контейнера с текстовым ботом                                                                                  | Node 22 base image                                  |
 
 ## Возможности
 
@@ -30,38 +30,9 @@
 
 ## Быстрый старт
 
-### 1. API (порт 4000)
-
 ```bash
-cd backend/api
-npm install
-node index.js
-```
-
-- При старте создаётся `backend/api/storage/data/max-miniapp.db`, таблица `accounts` и индексы. Путь можно переопределить переменными `MAX_MINIAPP_DB_DIR`, `MAX_MINIAPP_DB_PATH`. Для собственного двоичного файла sqlite задайте `SQLITE_BIN`.
-- Все ошибки логируются в консоль; ответ API упакован в `JSON`.
-- Сервер доступен на `http://localhost:4000`. При деплое оставьте тот же порт и прокиньте его в мини-приложение через `VITE_API_URL`.
-
-### 2. Мини-приложение
-
-```bash
-cd miniapp
-npm install
-npm start          # dev-режим с hot reload на http://localhost:3000
-npm run build      # production-сборка в miniapp/build
-```
-
-- API URL берётся из `import.meta.env.VITE_API_URL`. Если переменная не определена, используется `https://max-hackathon-c3tg.vercel.app` (см. `src/config/api.js`).
-- После `npm run build` залейте содержимое `miniapp/build` на любой HTTPS-хостинг и сохраните ссылку в MAX Business → **Чат-бот и мини-приложение** → **Настроить**.
-- В `public/index.html` уже подключён `https://st.max.ru/js/max-web-app.js`, поэтому мини-приложение готово к работе внутри клиента MAX.
-
-### 3. Текстовый бот
-
-```bash
-cd backend/textbot
-npm install
-touch .env             # создайте файл .env, если его ещё нет
-node main.js
+docker build -t max-bot .
+docker run -d --name max-bot max-bot
 ```
 
 Пример `.env`:
@@ -118,19 +89,19 @@ BOT_USERNAME=your_bot
 
 ## API-эндпоинты
 
-| Метод | Путь | Описание |
-| --- | --- | --- |
-| `GET` | `/api/universities` | Список доступных вузов (id, название, домен) |
-| `GET` | `/api/:universityId/schedule/search?term=` | Поиск профиля расписания |
-| `GET` | `/api/:universityId/schedule` | Расписание: по `groupLabel` (РГЭУ) или `profileId/profileType` (ФинУ) + `start/end` |
-| `GET` | `/api/:universityId/news` | Лента новостей (title, url, img) |
-| `GET` | `/api/:universityId/news/content?url=` | Текст новости (очищенный HTML) |
-| `GET` | `/api/:universityId/calendar?from=&to=` | Календарь событий (title/date/time/place) |
-| `GET` | `/api/:universityId/services/dean-office/bids` | Список заявлений/форм деканата |
-| `GET` | `/api/:universityId/library?lang=` | HTML-страница библиотеки (проксируется как есть) |
-| `POST` | `/api/accounts/register` | Создание/обновление аккаунта. Требует `fullName`, `email`, `course`, `groupLabel`, `password`, `universityId`, `scheduleProfile?` |
-| `POST` | `/api/accounts/login` | Авторизация по почте/паролю |
-| `GET` | `/api/accounts/:id` | Получение аккаунта по публичному идентификатору |
+| Метод  | Путь                                           | Описание                                                                                                                          |
+| ------ | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`  | `/api/universities`                            | Список доступных вузов (id, название, домен)                                                                                      |
+| `GET`  | `/api/:universityId/schedule/search?term=`     | Поиск профиля расписания                                                                                                          |
+| `GET`  | `/api/:universityId/schedule`                  | Расписание: по `groupLabel` (РГЭУ) или `profileId/profileType` (ФинУ) + `start/end`                                               |
+| `GET`  | `/api/:universityId/news`                      | Лента новостей (title, url, img)                                                                                                  |
+| `GET`  | `/api/:universityId/news/content?url=`         | Текст новости (очищенный HTML)                                                                                                    |
+| `GET`  | `/api/:universityId/calendar?from=&to=`        | Календарь событий (title/date/time/place)                                                                                         |
+| `GET`  | `/api/:universityId/services/dean-office/bids` | Список заявлений/форм деканата                                                                                                    |
+| `GET`  | `/api/:universityId/library?lang=`             | HTML-страница библиотеки (проксируется как есть)                                                                                  |
+| `POST` | `/api/accounts/register`                       | Создание/обновление аккаунта. Требует `fullName`, `email`, `course`, `groupLabel`, `password`, `universityId`, `scheduleProfile?` |
+| `POST` | `/api/accounts/login`                          | Авторизация по почте/паролю                                                                                                       |
+| `GET`  | `/api/accounts/:id`                            | Получение аккаунта по публичному идентификатору                                                                                   |
 
 Файлы, отвечающие за загрузку данных конкретного университета: `backend/api/universities/financialUniversity.js` и `rgeuUniversity.js`. Чтобы добавить новый вуз, создайте аналогичный модуль и зарегистрируйте его в `universities/index.js`.
 
@@ -140,13 +111,3 @@ BOT_USERNAME=your_bot
 - Мини-приложение хранит пользовательские настройки в `localStorage`. Ключи начинаются с `max-miniapp:*`.
 - В `miniapp/src/config/universities.js` лежат карточки вузов (название, домен, бренд-цвет, логотип, кастомные сервисы). Здесь же можно настраивать кнопки оплаты деканата.
 - Стили лежат в SCSS-модулях (`src/styles`), основной файл — `main.scss`.
-
-## Развёртывание и интеграция с MAX
-
-1. Поднимите API и убедитесь, что порт 4000 открыт извне или проброшен через reverse-proxy (Nginx, Caddy).
-2. Соберите и задеплойте мини-приложение, пропишите актуальный `VITE_API_URL` перед сборкой.
-3. В MAX Business создайте бота, подключите мини-приложение (URL из шага 2) и установите токен + username в `backend/textbot/.env`.
-4. В `main.js` замените ссылку в `Keyboard.button.link` на ваш продовый URL (или используйте `buildMiniAppLink(ctx)`), затем запустите бота или соберите Docker-образ.
-5. Протестируйте связку: `/start` → открытие мини-приложения → выбор вуза → проверка расписания/новостей/сервисов → регистрация аккаунта.
-
-Готово! Теперь у вас есть согласованный стек: бот для интеракций в MAX, бэкенд для данных и богатое React-микроприложение NoMissed.
