@@ -435,38 +435,6 @@ const useScheduleController = () => {
     );
   }, [cacheKey, lessons, nextLessonInfo, nowTimestamp]);
 
-  const weekRangeLabel = useMemo(() => formatWeekRange(weekDays), [weekDays]);
-
-  return {
-    weekDays,
-    weekOffset,
-    selectedDayIndex,
-    handleDaySelect,
-    handleWeekChange,
-    weekRangeLabel,
-    selectedProfile,
-    isEditingProfile,
-    handleEnterEditMode,
-    shouldExpandSearch,
-    searchInputRef,
-    searchQuery,
-    handleQueryChange,
-    isSearchBusy,
-    handleSearch,
-    searchError,
-    searchResults,
-    handleSelectProfile,
-    handleSearchFocusChange,
-    hasProfile,
-    isLoadingLessons,
-    hasError: cacheEntry?.status === "error",
-    isReady: cacheEntry?.status === "ready",
-    lessons,
-    preparedLessons,
-  };
-};
-
-export default useScheduleController;
   useEffect(() => {
     if (!account) {
       return;
@@ -500,3 +468,36 @@ export default useScheduleController;
     });
     setLessonsCache({});
   }, [account, universityId]);
+
+  const weekRangeLabel = useMemo(() => formatWeekRange(weekDays), [weekDays]);
+
+  return {
+    weekDays,
+    weekOffset,
+    selectedDayIndex,
+    handleDaySelect,
+    handleWeekChange,
+    weekRangeLabel,
+    selectedProfile,
+    isEditingProfile,
+    handleEnterEditMode,
+    shouldExpandSearch,
+    searchInputRef,
+    searchQuery,
+    handleQueryChange,
+    isSearchBusy,
+    handleSearch,
+    searchError,
+    searchResults,
+    handleSelectProfile,
+    handleSearchFocusChange,
+    hasProfile,
+    isLoadingLessons,
+    hasError: cacheEntry?.status === "error",
+    isReady: cacheEntry?.status === "ready",
+    lessons,
+    preparedLessons,
+  };
+};
+
+export default useScheduleController;
