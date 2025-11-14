@@ -15,45 +15,9 @@ import {
   createProjectRequest,
   updateProjectRequest,
   deleteProjectRequest,
-  joinProjectRequest,
-  leaveProjectRequest,
-  sendRequestToLeader,
-  respondToRequest,
+  fetchProjectsRequest,
 } from "./projectApi";
 import { initialProjects } from "./projectData";
-
-const PROJECTS_STORAGE_KEY = "max-miniapp:projects";
-
-const loadStoredProjects = () => {
-  if (typeof window === "undefined") {
-    return null;
-  }
-  try {
-    const raw = window.localStorage.getItem(PROJECTS_STORAGE_KEY);
-    if (!raw) {
-      return null;
-    }
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : null;
-  } catch (error) {
-    console.error("Failed to parse stored projects", error);
-    return null;
-  }
-};
-
-const persistProjects = (projects) => {
-  if (typeof window === "undefined") {
-    return;
-  }
-  try {
-    window.localStorage.setItem(
-      PROJECTS_STORAGE_KEY,
-      JSON.stringify(projects ?? []),
-    );
-  } catch (error) {
-    console.error("Failed to persist projects", error);
-  }
-};
 
 const ProjectActivityScreen = ({ account }) => {
   const [projects, setProjects] = useState(() => initialProjects);
@@ -86,21 +50,36 @@ const ProjectActivityScreen = ({ account }) => {
   }, [account]);
 
   useEffect(() => {
-    setIsLoading(true);
-    const timer = setTimeout(() => {
-      const stored = loadStoredProjects();
-      setProjects(() => (stored ? stored : initialProjects));
-      setIsLoading(false);
-    }, 400);
-    return () => clearTimeout(timer);
+    let aborted = false;
+    const load = async () => {
+      setIsLoading(true);
+      try {
+        const data = await fetchProjectsRequest();
+        if (aborted) {
+          return;
+        }
+        if (Array.isArray(data) && data.length > 0) {
+          setProjects(data);
+        } else {
+          setProjects(initialProjects);
+        }
+      } catch (loadError) {
+        console.error("Failed to load projects", loadError);
+        if (!aborted) {
+          setError("Не удалось загрузить проекты. Попробуйте позже.");
+          setProjects(initialProjects);
+        }
+      } finally {
+        if (!aborted) {
+          setIsLoading(false);
+        }
+      }
+    };
+    load();
+    return () => {
+      aborted = true;
+    };
   }, []);
-
-  useEffect(() => {
-    if (isLoading) {
-      return;
-    }
-    persistProjects(projects);
-  }, [isLoading, projects]);
 
   useEffect(() => {
     if (!notification) {
@@ -226,6 +205,19 @@ const ProjectActivityScreen = ({ account }) => {
         current?.id === projectId ? updatedProject : current,
       );
     }
+    return updatedProject;
+  };
+
+  const persistProject = async (project) => {
+    if (!project) {
+      return;
+    }
+    try {
+      await updateProjectRequest(project);
+    } catch (persistError) {
+      console.error("Failed to synchronize project", persistError);
+      setError("Не удалось синхронизировать проект. Попробуйте обновить страницу.");
+    }
   };
 
   const ensureCurrentUser = () => {
@@ -246,8 +238,7 @@ const ProjectActivityScreen = ({ account }) => {
       return;
     }
     try {
-      await joinProjectRequest({ projectId, roleId });
-      updateProjectState(projectId, (project) => {
+      const updatedProject = updateProjectState(projectId, (project) => {
         const participants = [
           ...(Array.isArray(project.participants) ? project.participants : []),
           { userId: currentUser.id, roleId },
@@ -270,6 +261,7 @@ const ProjectActivityScreen = ({ account }) => {
         );
         return { ...project, participants, roles, pendingRequests };
       });
+      await persistProject(updatedProject);
       showBanner("Вы присоединились к проекту.");
     } catch {
       setError("Не удалось присоединиться. Попробуйте еще раз.");
@@ -281,8 +273,7 @@ const ProjectActivityScreen = ({ account }) => {
       return;
     }
     try {
-      await leaveProjectRequest({ projectId });
-      updateProjectState(projectId, (project) => {
+      const updatedProject = updateProjectState(projectId, (project) => {
         const participants = (project.participants || []).filter(
           (member) => member.userId !== currentUser.id,
         );
@@ -302,6 +293,7 @@ const ProjectActivityScreen = ({ account }) => {
         });
         return { ...project, participants, roles };
       });
+      await persistProject(updatedProject);
       showBanner("Вы покинули проект.", "neutral");
     } catch {
       setError("Не удалось выйти из проекта.");
@@ -313,8 +305,7 @@ const ProjectActivityScreen = ({ account }) => {
       return;
     }
     try {
-      await sendRequestToLeader({ projectId, roleId, message });
-      updateProjectState(projectId, (project) => ({
+      const updatedProject = updateProjectState(projectId, (project) => ({
         ...project,
         pendingRequests: [
           ...(Array.isArray(project.pendingRequests)
@@ -329,6 +320,7 @@ const ProjectActivityScreen = ({ account }) => {
           },
         ],
       }));
+      await persistProject(updatedProject);
       showBanner("Заявка отправлена лидеру.");
     } catch {
       setError("Не удалось отправить заявку. Попробуйте еще раз.");
@@ -337,8 +329,7 @@ const ProjectActivityScreen = ({ account }) => {
 
   const handleRespondRequest = async (projectId, requestId, status) => {
     try {
-      await respondToRequest({ projectId, requestId, status });
-      updateProjectState(projectId, (project) => {
+      const updatedProject = updateProjectState(projectId, (project) => {
         const pendingRequests = Array.isArray(project.pendingRequests)
           ? project.pendingRequests
           : [];
@@ -381,6 +372,7 @@ const ProjectActivityScreen = ({ account }) => {
           ),
         };
       });
+      await persistProject(updatedProject);
       showBanner(
         status === "accepted" ? "Заявка одобрена." : "Заявка отклонена.",
         status === "accepted" ? "success" : "neutral",
@@ -437,8 +429,7 @@ const ProjectActivityScreen = ({ account }) => {
     payload.leaderRoleId = leaderRoleExists ? formValues.leaderRoleId : "";
 
     if (projectId) {
-      await updateProjectRequest({ projectId, payload });
-      updateProjectState(projectId, (project) => {
+      const updatedProject = updateProjectState(projectId, (project) => {
         const preservedParticipants = (project.participants || []).filter(
           (member) => member.userId !== currentUser.id,
         );
@@ -468,11 +459,11 @@ const ProjectActivityScreen = ({ account }) => {
           ),
         };
       });
+      await updateProjectRequest(updatedProject);
       showBanner("Проект обновлен.");
       return;
     }
 
-    await createProjectRequest(payload);
     const leaderRoleId = payload.leaderRoleId || "";
     const participants = leaderRoleId
       ? [{ userId: currentUser.id, roleId: leaderRoleId }]
@@ -498,9 +489,11 @@ const ProjectActivityScreen = ({ account }) => {
       participants,
       pendingRequests: [],
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       maxPeople: payload.roles.reduce((total, role) => total + role.requiredCount, 0),
     };
-    setProjects((prev) => [newProject, ...prev]);
+    const savedProject = await createProjectRequest(newProject);
+    setProjects((prev) => [savedProject, ...prev]);
     showBanner("Проект создан.");
   };
 

@@ -6,6 +6,7 @@ const {
   getUniversityById,
 } = require("./universities");
 const accountsRouter = require("./routes/accounts");
+const projectsRouter = require("./routes/projects");
 
 const app = express();
 app.use(cors());
@@ -140,5 +141,6 @@ app.get("/api/:universityId/library", libraryHandler);
 app.get("/api/library", libraryHandler);
 
 app.use("/api/accounts", accountsRouter);
+app.use("/api/projects", projectsRouter);
 
 app.listen(4000, () => console.log("Server running on port 4000"));

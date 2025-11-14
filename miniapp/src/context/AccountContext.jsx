@@ -18,6 +18,23 @@ import {
 } from "../methods/schedule/scheduleUtils";
 import { useUniversity } from "./UniversityContext";
 
+const resolveScheduleProfileFromAccount = (payload) => {
+  if (!payload) {
+    return null;
+  }
+  if (payload.scheduleProfile) {
+    return payload.scheduleProfile;
+  }
+  if (payload.groupLabel) {
+    return {
+      id: payload.groupLabel,
+      type: "schedule",
+      label: payload.groupLabel,
+    };
+  }
+  return null;
+};
+
 const STORAGE_KEY = "max-miniapp:account-id";
 
 const decodeBase64Url = (value) => {
@@ -235,33 +252,21 @@ export const AccountProvider = ({ children }) => {
   const resolvedUserId = maxUser?.userId || null;
   const contextUserId = resolvedUserId || accountId || null;
 
-  const syncScheduleFromAccount = useCallback((payload) => {
-    if (typeof window === "undefined") {
-      return;
-    }
-    if (!payload?.universityId) {
-      return;
-    }
-    const storageKey = getScheduleStorageKey(payload.universityId);
-    if (!storageKey) {
-      return;
-    }
-    if (payload.scheduleProfile) {
-      persistScheduleProfile(storageKey, payload.scheduleProfile);
-    }
-  }, []);
-
   const applyAccountSideEffects = useCallback(
     (payload) => {
       if (!payload) {
         return;
       }
-      syncScheduleFromAccount(payload);
       if (payload.universityId) {
         selectUniversity(payload.universityId);
+        const storageKey = getScheduleStorageKey(payload.universityId);
+        if (storageKey) {
+          const profile = resolveScheduleProfileFromAccount(payload);
+          persistScheduleProfile(storageKey, profile);
+        }
       }
     },
-    [selectUniversity, syncScheduleFromAccount],
+    [selectUniversity],
   );
 
   const loadAccount = useCallback(

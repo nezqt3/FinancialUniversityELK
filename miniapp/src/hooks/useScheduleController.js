@@ -478,7 +478,15 @@ export default useScheduleController;
     ) {
       return;
     }
-    const nextProfile = account.scheduleProfile || null;
+    const nextProfile =
+      account.scheduleProfile ||
+      (account.groupLabel
+        ? {
+            id: account.groupLabel,
+            type: "schedule",
+            label: account.groupLabel,
+          }
+        : null);
     skipPersistRef.current = true;
     setSelectedProfile((prev) => {
       const isSame =
@@ -490,7 +498,5 @@ export default useScheduleController;
       }
       return nextProfile;
     });
-    if (!nextProfile) {
-      setLessonsCache({});
-    }
+    setLessonsCache({});
   }, [account, universityId]);
