@@ -19,6 +19,8 @@ const resolveInitialDbPath = () => {
 };
 
 let DB_PATH = resolveInitialDbPath();
+let driverType = null;
+let embeddedDb = null;
 
 const isReadOnlyError = (error) =>
   Boolean(error) &&
@@ -81,42 +83,105 @@ const buildSql = (sql, params = {}) => {
   });
 };
 
-const runSqlite = (argsOrBuilder) => {
+const runSqliteCli = (argsOrBuilder) => {
   ensureDataDir();
   const args =
     typeof argsOrBuilder === "function"
       ? argsOrBuilder(DB_PATH)
       : argsOrBuilder;
-  try {
-    return execFileSync(SQLITE_BIN, args, {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-  } catch (error) {
-    const stderr = error.stderr?.toString().trim();
-    const stdout = error.stdout?.toString().trim();
-    const message = stderr || stdout || error.message || "SQLite error";
-    throw new Error(message);
+  return execFileSync(SQLITE_BIN, args, {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+};
+
+const ensureEmbeddedDb = () => {
+  if (embeddedDb) {
+    return embeddedDb;
   }
+  ensureDataDir();
+  const Database = require("better-sqlite3");
+  embeddedDb = new Database(DB_PATH);
+  embeddedDb.pragma("journal_mode = WAL");
+  console.warn("SQLite CLI is unavailable. Using better-sqlite3 driver.");
+  return embeddedDb;
+};
+
+const detectDriver = () => {
+  if (driverType) {
+    return driverType;
+  }
+
+  const forceEmbedded =
+    process.env.MAX_MINIAPP_FORCE_EMBEDDED === "1" ||
+    process.env.VERCEL === "1";
+
+  if (!forceEmbedded) {
+    try {
+      runSqliteCli(["-version"]);
+      driverType = "cli";
+      return driverType;
+    } catch (error) {
+      if (error.code !== "ENOENT") {
+        console.warn("sqlite3 CLI check failed, switching to embedded driver.", {
+          message: error.message,
+        });
+      }
+    }
+  }
+
+  ensureEmbeddedDb();
+  driverType = "embedded";
+  return driverType;
 };
 
 const execute = (sql, params = {}) => {
   const finalSql = buildSql(sql, params);
-  runSqlite((dbPath) => [dbPath, finalSql.trim()]);
+  const driver = detectDriver();
+  if (driver === "cli") {
+    try {
+      runSqliteCli((dbPath) => [dbPath, finalSql.trim()]);
+      return;
+    } catch (error) {
+      if (error.code !== "ENOENT") {
+        throw error;
+      }
+      driverType = "embedded";
+    }
+  }
+  const db = ensureEmbeddedDb();
+  db.exec(finalSql.trim());
 };
 
 const query = (sql, params = {}) => {
   const finalSql = buildSql(sql, params);
-  const output = runSqlite((dbPath) => ["-json", dbPath, finalSql.trim()]);
-  const normalized = output.trim();
-  if (!normalized) {
-    return [];
+  const driver = detectDriver();
+  if (driver === "cli") {
+    try {
+      const output = runSqliteCli((dbPath) => [
+        "-json",
+        dbPath,
+        finalSql.trim(),
+      ]);
+      const normalized = output.trim();
+      if (!normalized) {
+        return [];
+      }
+      try {
+        return JSON.parse(normalized);
+      } catch (error) {
+        throw new Error(`Не удалось распарсить ответ SQLite: ${error.message}`);
+      }
+    } catch (error) {
+      if (error.code !== "ENOENT") {
+        throw error;
+      }
+      driverType = "embedded";
+    }
   }
-  try {
-    return JSON.parse(normalized);
-  } catch (error) {
-    throw new Error(`Не удалось распарсить ответ SQLite: ${error.message}`);
-  }
+  const db = ensureEmbeddedDb();
+  const statement = db.prepare(finalSql.trim());
+  return statement.all();
 };
 
 module.exports = {
