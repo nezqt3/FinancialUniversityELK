@@ -2,7 +2,10 @@
 :root {
   /* Подстрой по фактической высоте меню, если нужно */
   --menu-height: 72px;
-  --screen-height: calc(100vh - env(safe-area-inset-bottom, 0) - var(--menu-height));
+  --safe-top: env(safe-area-inset-top, 0);
+  --screen-height: calc(
+    100vh - var(--safe-top) - env(safe-area-inset-bottom, 0) - var(--menu-height)
+  );
 }
 
 .app-shell {
@@ -10,6 +13,7 @@
   display: flex;
   flex-direction: column;
   background: $color-white;
+  padding-top: var(--safe-top);
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
@@ -19,6 +23,7 @@
   display: flex;
   flex-direction: column;
   background: $color-white;
+  padding-top: var(--safe-top);
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
@@ -64,7 +69,9 @@
 /* Более корректная высота на мобильных браузерах с динамической адресной строкой */
 @supports (height: 100dvh) {
   :root {
-    --screen-height: calc(100dvh - env(safe-area-inset-bottom, 0) - var(--menu-height));
+    --screen-height: calc(
+      100dvh - var(--safe-top) - env(safe-area-inset-bottom, 0) - var(--menu-height)
+    );
   }
 }
 

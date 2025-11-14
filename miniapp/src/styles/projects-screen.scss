@@ -347,13 +347,15 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  padding: 1.5rem 1rem;
+  padding: calc(env(safe-area-inset-top, 0) + 0.75rem) 1rem 1.5rem;
   z-index: 30;
 }
 
 .projects-overlay__panel {
   width: min(420px, 100%);
-  max-height: calc(100vh - 2rem);
+  max-height: calc(
+    100vh - env(safe-area-inset-top, 0) - env(safe-area-inset-bottom, 0) - 2.5rem
+  );
   background: $color-white;
   border-radius: 32px;
   overflow: hidden auto;

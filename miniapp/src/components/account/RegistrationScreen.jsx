@@ -36,7 +36,7 @@ const RegistrationScreen = ({ onSuccess, onCancel }) => {
   const [groupMode, setGroupMode] = useState(
     initialProfile ? "schedule" : "manual",
   );
-  const [selectedProfile, setSelectedProfile] = useState(initialProfile);
+  const [linkedProfile, setLinkedProfile] = useState(initialProfile);
   const [groupSearch, setGroupSearch] = useState("");
   const [groupResults, setGroupResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -45,7 +45,7 @@ const RegistrationScreen = ({ onSuccess, onCancel }) => {
   const [successMessage, setSuccessMessage] = useState("");
 
   useEffect(() => {
-    setSelectedProfile(initialProfile);
+    setLinkedProfile(initialProfile);
     if (initialProfile) {
       setGroupMode("schedule");
     }
@@ -89,7 +89,7 @@ const RegistrationScreen = ({ onSuccess, onCancel }) => {
       if (detail.storageKey !== storageKey) {
         return;
       }
-      setSelectedProfile(detail.profile || null);
+      setLinkedProfile(detail.profile || null);
       if (detail.profile && groupMode !== "manual") {
         setGroupMode("schedule");
       }
@@ -156,23 +156,22 @@ const RegistrationScreen = ({ onSuccess, onCancel }) => {
     if (!result) {
       return;
     }
+    setLinkedProfile(result);
+    if (storageKey) {
+      persistScheduleProfile(storageKey, result);
+    }
     if (groupMode === "schedule") {
-      setSelectedProfile(result);
       setManualGroup("");
       setGroupSearch("");
-      if (storageKey) {
-        persistScheduleProfile(storageKey, result);
-      }
     } else {
       setManualGroup(result.label);
       setGroupSearch(result.label);
-      setSelectedProfile(null);
     }
     setGroupResults([]);
   };
 
   const handleClearScheduleSync = () => {
-    setSelectedProfile(null);
+    setLinkedProfile(null);
     if (storageKey) {
       persistScheduleProfile(storageKey, null);
     }
@@ -182,6 +181,10 @@ const RegistrationScreen = ({ onSuccess, onCancel }) => {
   const handleManualInputChange = (value) => {
     setGroupSearch(value);
     setManualGroup(value);
+    setLinkedProfile(null);
+    if (storageKey) {
+      persistScheduleProfile(storageKey, null);
+    }
     if (!value) {
       setGroupResults([]);
       setSearchError("");
@@ -193,6 +196,10 @@ const RegistrationScreen = ({ onSuccess, onCancel }) => {
     setGroupSearch("");
     setGroupResults([]);
     setSearchError("");
+    setLinkedProfile(null);
+    if (storageKey) {
+      persistScheduleProfile(storageKey, null);
+    }
   };
 
   useEffect(() => {
@@ -229,7 +236,7 @@ const RegistrationScreen = ({ onSuccess, onCancel }) => {
     }
 
     if (groupMode === "schedule") {
-      if (!selectedProfile) {
+      if (!linkedProfile) {
         errors.group = "Выберите группу из расписания";
       }
     } else if (!manualGroup.trim()) {
@@ -257,12 +264,11 @@ const RegistrationScreen = ({ onSuccess, onCancel }) => {
       course: String(courseNumber),
       groupLabel:
         groupMode === "schedule"
-          ? selectedProfile?.label ?? ""
+          ? linkedProfile?.label ?? ""
           : manualGroup.trim(),
       universityId,
       universityTitle,
-      scheduleProfile:
-        groupMode === "schedule" && selectedProfile ? selectedProfile : null,
+      scheduleProfile: linkedProfile || null,
     };
 
     try {
@@ -283,11 +289,11 @@ const RegistrationScreen = ({ onSuccess, onCancel }) => {
 
   const renderScheduleSelector = () => (
     <div className="account-group-selector">
-      {selectedProfile ? (
+      {linkedProfile ? (
         <div className="account-group-selector__pill">
           <div>
-            <span>{selectedProfile.label}</span>
-            <small>{selectedProfile.type}</small>
+            <span>{linkedProfile.label}</span>
+            <small>{linkedProfile.type}</small>
           </div>
           <button type="button" onClick={handleClearScheduleSync}>
             Сбросить
