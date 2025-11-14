@@ -48,7 +48,10 @@ const buildMiniAppLink = (ctx) => {
 bot.command("start", (ctx) => {
   const keyboard = Keyboard.inlineKeyboard([
     [
-      Keyboard.button.link("🚀 Открыть мини-приложение", buildMiniAppLink(ctx)),
+      Keyboard.button.link(
+        "🚀 Открыть мини-приложение",
+        "https://max-hackathon.vercel.app"
+      ),
     ],
   ]);
 

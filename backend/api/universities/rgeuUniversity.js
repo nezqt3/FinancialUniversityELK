@@ -39,8 +39,6 @@ const getScheduleRgeu = async ({ groupLabel, profileType, start, end }) => {
       for (let p = 0; p < dayPairs.length; p++) {
         const pair = dayPairs[p];
 
-        console.log(pair.lessons);
-
         if (pair.lessons.length !== 0) {
           pairs.push({
             auditoriums: [pair.lessons[0].audience],

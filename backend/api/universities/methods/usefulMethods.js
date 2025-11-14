@@ -1,3 +1,13 @@
+const dayMap = {
+  Понедельник: 1,
+  Вторник: 2,
+  Среда: 3,
+  Четверг: 4,
+  Пятница: 5,
+  Суббота: 6,
+  Воскресенье: 7,
+};
+
 const sanitizeText = (value) =>
   (value || "")
     .replace(/<[^>]*>/g, " ")
@@ -39,22 +49,7 @@ function parseDMY(dateStr) {
 }
 
 function convertNameOfDay(dayName) {
-  switch (dayName.slice(0, 2)) {
-    case "По":
-      return 1;
-    case "Вт":
-      return 2;
-    case "Ср":
-      return 3;
-    case "Че":
-      return 4;
-    case "Пя":
-      return 5;
-    case "Су":
-      return 6;
-    case "Во":
-      return 7;
-  }
+  return dayMap[dayName] ?? null;
 }
 
 module.exports = {

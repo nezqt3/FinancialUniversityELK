@@ -1,20 +1,15 @@
 FROM node:22
 
-WORKDIR /app
+WORKDIR /app/textbot
 
-COPY backend/textbot/package*.json ./textbot/
-COPY miniapp/package*.json ./miniapp/
+COPY backend/textbot/package*.json ./
 
-RUN cd textbot && npm install
-RUN cd ../miniapp && npm install
+RUN npm install
 
-COPY backend/textbot ./textbot
-COPY miniapp ./miniapp
+COPY backend/textbot ./
 
-RUN npm install -g concurrently
+COPY backend/textbot/.env ./
 
-EXPOSE 4000 3000
+EXPOSE 4000
 
-ENV REACT_APP_API_URL=http://localhost:4000
-
-CMD ["concurrently", "--kill-others", "cd textbot && node main.js", "cd miniapp && npm start"]
+CMD ["node", "main.js"]
