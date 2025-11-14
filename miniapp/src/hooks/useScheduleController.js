@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { parseIdSchedule, parseSchedule } from "../methods/parse/parseSchedule";
 import { useUniversity } from "../context/UniversityContext.jsx";
+import { useAccount } from "../context/AccountContext.jsx";
 import {
   getScheduleStorageKey,
   buildWeekDays,
@@ -17,6 +18,7 @@ const SEARCH_DEBOUNCE_MS = 250;
 
 const useScheduleController = () => {
   const { university } = useUniversity();
+  const { account } = useAccount();
   const universityId = university?.apiId || university?.id || null;
   const storageKey = useMemo(
     () => getScheduleStorageKey(universityId),
@@ -465,3 +467,30 @@ const useScheduleController = () => {
 };
 
 export default useScheduleController;
+  useEffect(() => {
+    if (!account) {
+      return;
+    }
+    if (
+      account.universityId &&
+      universityId &&
+      account.universityId !== universityId
+    ) {
+      return;
+    }
+    const nextProfile = account.scheduleProfile || null;
+    skipPersistRef.current = true;
+    setSelectedProfile((prev) => {
+      const isSame =
+        (prev?.id ?? null) === (nextProfile?.id ?? null) &&
+        (prev?.type ?? "") === (nextProfile?.type ?? "") &&
+        (prev?.label ?? "") === (nextProfile?.label ?? "");
+      if (isSame) {
+        return prev;
+      }
+      return nextProfile;
+    });
+    if (!nextProfile) {
+      setLessonsCache({});
+    }
+  }, [account, universityId]);
