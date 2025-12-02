@@ -1,5 +1,5 @@
 import LogoFin from "../static/logoFin.svg";
-import LogoRgeu from "../static/logoRgeu.png";
+// import LogoRgeu from "../static/logoRgeu.png";
 
 export const UNIVERSITIES = [
   {
